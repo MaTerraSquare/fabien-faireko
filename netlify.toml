@@ -1,0 +1,22 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/fabien"
+  to = "/.netlify/functions/fabien"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/ask"
+  to = "/.netlify/functions/prescribe"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "POST, GET, OPTIONS"
