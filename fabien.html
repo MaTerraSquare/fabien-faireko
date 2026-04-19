@@ -151,12 +151,15 @@ body {
   .fe-intro-portrait { margin: 0 auto; }
 }
 .fe-intro-portrait {
-  width: 140px;
-  height: 140px;
-  border-radius: var(--r-md);
-  object-fit: cover;
-  object-position: top center;
-  background: var(--fe-surface);
+  width: 220px;
+  height: auto;
+  max-height: 320px;
+  border-radius: 0;
+  object-fit: contain;
+  object-position: bottom center;
+  background: transparent;
+  display: block;
+  mix-blend-mode: multiply;
 }
 .fe-intro-label {
   font-family: var(--font-body);
@@ -297,13 +300,14 @@ body {
   margin-bottom: 14px;
 }
 .fe-card-portrait {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--r-sm);
-  object-fit: cover;
-  object-position: top center;
-  background: var(--fe-bg);
+  width: 52px;
+  height: 64px;
+  border-radius: 0;
+  object-fit: contain;
+  object-position: bottom center;
+  background: transparent;
   flex-shrink: 0;
+  mix-blend-mode: multiply;
 }
 .fe-card-title {
   font-family: var(--font-body);
@@ -487,18 +491,50 @@ body {
 .fe-sugg {
   background: transparent;
   border: 1px solid var(--fe-border);
-  border-radius: var(--r-sm);
-  padding: 8px 14px;
+  border-radius: 20px;
+  padding: 8px 16px;
   font-family: var(--font-body);
   font-size: 13px;
   color: var(--fe-text);
   cursor: pointer;
   transition: all var(--dur-base) var(--ease);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fe-sugg::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--fe-border);
+  border-radius: 3px;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: all var(--dur-base) var(--ease);
 }
 .fe-sugg:hover {
-  background: var(--fe-ink);
-  color: var(--fe-bg);
-  border-color: var(--fe-ink);
+  border-color: var(--fe-accent);
+  color: var(--fe-ink);
+}
+.fe-sugg.selected {
+  background: var(--fe-surface);
+  border-color: var(--fe-accent);
+  color: var(--fe-ink);
+  font-weight: 500;
+}
+.fe-sugg.selected::before {
+  background: var(--fe-accent);
+  border-color: var(--fe-accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='white' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.fe-sugg-hint {
+  font-size: 11px;
+  color: var(--fe-muted);
+  margin-top: 8px;
+  font-style: italic;
 }
 
 /* ========================== INPUT BAR ========================== */
@@ -1048,13 +1084,45 @@ function addFabienCard(data) {
   if (data.questions_suivantes?.length) {
     const sug = document.createElement('div');
     sug.className = 'fe-suggestions';
+    
+    const hint = document.createElement('div');
+    hint.className = 'fe-sugg-hint';
+    hint.textContent = 'Sélectionne une ou plusieurs questions, puis envoie :';
+    sug.appendChild(hint);
+    
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;';
+    
     data.questions_suivantes.forEach(q => {
       const b = document.createElement('button');
       b.className = 'fe-sugg';
       b.textContent = q;
-      b.addEventListener('click', (function(qq){return function(){document.getElementById('userInput').value=qq;sendMessage();};})(q));
-      sug.appendChild(b);
+      b.dataset.question = q;
+      
+      b.addEventListener('click', function() {
+        // Toggle sélection
+        this.classList.toggle('selected');
+        
+        // Mettre à jour l'input avec toutes les questions sélectionnées
+        const input = document.getElementById('userInput');
+        const selected = Array.from(btnRow.querySelectorAll('.fe-sugg.selected'))
+          .map(el => el.dataset.question);
+        
+        if (selected.length === 0) {
+          input.value = '';
+        } else if (selected.length === 1) {
+          input.value = selected[0];
+        } else {
+          // Plusieurs sélectionnées : les combiner naturellement
+          input.value = selected.join(' / ');
+        }
+        input.focus();
+      });
+      
+      btnRow.appendChild(b);
     });
+    
+    sug.appendChild(btnRow);
     card.appendChild(sug);
   }
 
