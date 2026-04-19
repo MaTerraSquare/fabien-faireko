@@ -60,6 +60,7 @@ body {
   line-height: 1.7;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
+  padding-bottom: 90px; /* espace pour la barre de saisie fixe */
 }
 
 /* ========================== HEADER ========================== */
@@ -219,7 +220,6 @@ body {
   border-radius: var(--r-lg);
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 200px);
   min-height: 520px;
   position: relative;
 }
@@ -540,15 +540,28 @@ body {
   font-style: italic;
 }
 
-/* ========================== INPUT BAR ========================== */
+/* ========================== INPUT BAR (FIXE EN BAS) ========================== */
 .fe-input {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
   border-top: 1px solid var(--fe-border);
-  padding: 16px 24px;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   display: flex;
   gap: 10px;
   background: var(--fe-bg);
-  flex-shrink: 0;
-  border-radius: 0 0 var(--r-lg) var(--r-lg);
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+  z-index: 100;
+}
+.fe-input-inner {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 var(--sp-4);
 }
 .fe-input input {
   flex: 1;
@@ -818,10 +831,6 @@ body {
 
       <div class="fe-msgs" id="fabMsgs"></div>
 
-      <div class="fe-input">
-        <input type="text" id="userInput" placeholder="Décrivez votre projet ou votre question..." autocomplete="off">
-        <button class="btn btn-primary" id="sendBtn">Envoyer</button>
-      </div>
     </section>
 
   </main>
@@ -1344,7 +1353,15 @@ function updateProgress(etape) {
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
 })();
 </script>
+
+<!-- Barre de saisie FIXE en bas sur tous appareils -->
+<div class="fe-input">
+  <div class="fe-input-inner">
+    <input type="text" id="userInput" placeholder="Décrivez votre projet ou votre question..." autocomplete="off">
+    <button class="btn btn-primary" id="sendBtn">Envoyer</button>
+  </div>
+</div>
+
 </body>
 </html>
-
 
