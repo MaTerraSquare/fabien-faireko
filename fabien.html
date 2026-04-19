@@ -63,6 +63,39 @@ body {
   padding-bottom: 90px; /* espace pour la barre de saisie fixe */
 }
 
+/* ========================== BANDEAU BETA ========================== */
+.fe-beta-banner {
+  background: #FEF3C7;
+  border-bottom: 1px solid #F59E0B;
+  padding: 10px 16px;
+  font-family: var(--font-body);
+}
+.fe-beta-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.fe-beta-icon {
+  font-size: 16px;
+  color: #B45309;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+.fe-beta-text {
+  font-size: 13px;
+  color: #78350F;
+  line-height: 1.5;
+}
+.fe-beta-text strong {
+  color: #78350F;
+  font-weight: 600;
+}
+@media (max-width: 640px) {
+  .fe-beta-text { font-size: 12px; }
+}
+
 /* ========================== HEADER ========================== */
 .fe-hdr {
   background: var(--fe-ink);
@@ -793,6 +826,17 @@ body {
     <a href="/devis" class="btn btn-accent">Demander un devis</a>
   </div>
 </header>
+
+<!-- BANDEAU BETA - Protection légale et transparence utilisateur -->
+<div class="fe-beta-banner" role="note">
+  <div class="fe-beta-inner">
+    <span class="fe-beta-icon" aria-hidden="true">⚠</span>
+    <span class="fe-beta-text">
+      <strong>Assistant en version BETA.</strong>
+      Les recommandations sont indicatives et doivent être validées par un professionnel avant tout chantier. Les données techniques peuvent comporter des imprécisions.
+    </span>
+  </div>
+</div>
 
 <div class="fe-wrap">
 

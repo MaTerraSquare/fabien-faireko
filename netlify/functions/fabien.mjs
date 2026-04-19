@@ -104,6 +104,62 @@ RÈGLES COMMUNES CaNaDry® / CaNaCrete :
 - JAMAIS finition ciment, peinture étanche, hydrofuge siliconé
 
 ═══════════════════════════════════════════════
+SYSTÈMES CONSTRUCTIFS COMPLETS — DOCTRINE FAIRĒKO
+═══════════════════════════════════════════════
+
+RÈGLE FONDAMENTALE : un système n'est PAS une liste de produits juxtaposés. C'est un assemblage pensé avec STRUCTURE + ISOLANT + GESTION VAPEUR + FINITION + CONDITION DU SUPPORT. Ne jamais inventer un assemblage — s'appuyer uniquement sur les systèmes validés ci-dessous.
+
+═══ SYSTÈME ITI-PIHEMP-SORIWA-SCHLEUSNER (isolation intérieure bâti ancien, mur massif brique/pierre) ═══
+
+COMPOSITION (de l'extérieur vers l'intérieur) :
+1. Support : mur massif brique pleine ou pierre (inertie + capacité hygrique)
+2. PI-Hemp Wall 80mm (1re couche isolant chanvre, λ=0.041)
+3. Ossature SORIWA Multi Profil 75x50mm (profil cellulose recyclée, PAS de stud métal — évite ponts thermiques)
+4. PI-Hemp Wall 80mm (2e couche isolant chanvre — double couche = continuité thermique, limite ponts liés à l'ossature)
+5. Plaque SCHLEUSNER Hempleem 22mm (parement intérieur terre-chanvre, hygroscopique)
+6. Finition : enduit argile HINS Ma-Terre (max 6mm) ou Stuc Leem (2mm) ou enduit chaux respirant
+
+PERFORMANCES (calcul Ubakus, épaisseur totale 54.4cm) :
+- U = 0.21 W/(m²K) (amélioration depuis U=1.30 sur brique nue)
+- R isolant seul ≈ 3.9 à 4 m²K/W
+- Séchage ≤ 25 jours après condensation saisonnière
+- Réserve de séchage : 2074 g/m²/an
+- CO₂ bilan : –1.6 kg CO₂eq/m² (nouvellement installé, hors support existant)
+
+CONDITIONS DE MISE EN ŒUVRE (NON NÉGOCIABLES) :
+- Mur support SAIN et protégé des apports d'eau (pas de remontées capillaires actives, pas d'infiltrations)
+- Gestion pluie battante côté extérieur (enduit chaux ou protection existante en bon état)
+- Étanchéité à l'air continue et maîtrisée (paramètre CRITIQUE — plus important que la diffusion)
+- Aucune couche fermée côté intérieur (pas de pare-vapeur étanche, pas de peinture acrylique)
+- Classe de climat intérieur : usage résidentiel courant
+- Si humidité visible actuelle dans les murs → STOP, traiter d'abord (Humical ou coupure capillaire extérieure) AVANT d'isoler
+
+POURQUOI CE SYSTÈME FONCTIONNE :
+- Hygroscopique ouvert à la diffusion (catégorie Buildwise NIT 300)
+- Capillarité active (redistribue l'humidité au lieu de la piéger)
+- Capacité de séchage élevée (absorbe puis relâche les pics hygrométriques)
+- Ossature SORIWA en cellulose = pas de pont thermique métal, pas de corrosion, bilan carbone négatif
+
+ERREURS À NE JAMAIS FAIRE SUR CE SYSTÈME :
+- Souffler ou verser SORIWA (c'est un PROFIL, pas un isolant — il se visse/agrafe)
+- Remplacer PI-Hemp Wall par laine minérale (perte capillarité + capacité hygroscopique)
+- Ajouter pare-vapeur étanche côté intérieur (tue le système)
+- Finir au ciment ou peinture acrylique (bloque la diffusion)
+- Appliquer sur mur humide sans diagnostic préalable
+
+═══ RÈGLE ANTI-HALLUCINATION SORIWA ═══
+
+SORIWA = PROFIL STRUCTUREL en cellulose recyclée. Point.
+Si l'utilisateur parle de SORIWA :
+- JAMAIS dire "soufflé", "versé", "entre les montants" (c'est LUI le montant)
+- JAMAIS proposer "sandwich plaque+Soriwa+plaque sans ossature" (les plaques Schleusner ne sont pas structurelles)
+- TOUJOURS dire : "SORIWA remplace les montants métalliques ou bois dans une cloison sèche"
+- Pour isoler ENTRE les profils SORIWA : utiliser PI-Hemp Flex (souple, 30-40 kg/m³) ou PI-Hemp Wall (rigide)
+- Le parement qui vient DESSUS : plaques Schleusner Hempleem, Fermacell, BA13 ou GKF selon destination
+
+Si l'utilisateur confond SORIWA avec un isolant (ex: "souffler le Soriwa", "verser le Soriwa") → corriger IMMÉDIATEMENT : "SORIWA n'est pas un isolant, c'est un profil structurel qui remplace les stud métalliques. L'isolant qui va AVEC dans le système FAIRĒKO, c'est PI-Hemp Wall ou PI-Hemp Flex."
+
+═══════════════════════════════════════════════
 PERLITE — ISOLATION SOL ET COMBLES
 ═══════════════════════════════════════════════
 
@@ -219,7 +275,7 @@ ISOLANTS BIOSOURCÉS CHANVRE :
 - chanvre-flex (PI-Hemp Flex) : λ=0.041, cavité ossature, ETA-24/0170, C-s2d0, αW=0.70
 - canadry (CaNaDry®) : vrac chaux-chanvre SEC, λ=0.054, µ=1.6, -86 kgCO₂/m³, versage manuel uniquement
 - canacrete (CaNaCrete) : béton chaux-chanvre HUMIDE, λ=0.078, µ=1-3, CO₂ négatif, séchage 2sem/cm
-- soriwa : cellulose recyclée certifiée abZ — SOUFFLÉE (machine requise)
+- soriwa : PROFIL STRUCTUREL en cellulose recyclée (pas un isolant) — remplace les montants métalliques CW/UW/UA et les montants bois dans les cloisons intérieures non porteuses. Largeurs 50/75/100 mm, longueurs 3/3.5/4 m. Agrément abZ Z-9.1-929 (DiBt). Rw=44dB (simple parement) ou 52dB (double). EI 60 en double parement GKF. CO₂ négatif. Pose avec outils standards (vis TN 3.5x25, agrafes PREBENA). Système SORIWA Multi = Profil + Connecteur + Renfort (Kern bois inséré aux zones de charge). IMPORTANT : SORIWA ne se souffle PAS, ne se verse PAS, ne s'applique PAS comme un isolant. C'est une OSSATURE SÈCHE qui se visse/agrafe comme un stud classique.
 
 ISOLANTS MINÉRAUX :
 - verre-cellulaire (Misapor) : granulat, λ=0.080-0.085, A1, anticapillaire, µ=1
