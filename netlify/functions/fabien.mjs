@@ -29,14 +29,14 @@ Argile : argile-wallonne, stuc-clay
 Sol : lithotherm
 Réemploi : recoma (λ=0.157)
 
-Réponds UNIQUEMENT en JSON valide (pas de markdown) :
+Réponds UNIQUEMENT en JSON valide (pas de markdown, pas de backticks) :
 {
-  "message": "réponse tutoiement sobre",
+  "message": "réponse tutoiement sobre et chaleureuse, max 3 paragraphes",
   "posture": "diagnostic|pose|anti_oubli|panier|cta",
-  "tu_as_pense_a": ["vigilance 1"],
-  "alertes": [{"type": "critique|astuce", "texte": "..."}],
-  "produits_suggeres": [{"slug": "adherecal", "nom": "Adherecal", "role": "Gobetis", "prix": 37.91, "categorie": "enduit", "conseil_pro": "1.4 kg/m²/mm", "quantite_suggeree": 2}],
-  "questions_suivantes": ["question 1"],
+  "tu_as_pense_a": ["vigilance 1", "vigilance 2"],
+  "alertes": [{"type": "critique|astuce", "texte": "message court"}],
+  "produits_suggeres": [{"slug": "adherecal", "nom": "Adherecal", "role": "Gobetis d'accroche NHL", "prix": 37.91, "categorie": "enduit", "conseil_pro": "1.4 kg/m²/mm — toujours première couche", "quantite_suggeree": 2}],
+  "questions_suivantes": ["question courte 1", "question 2"],
   "etape_projet": "diagnostic|choix_produits|pose|finition",
   "sujet_principal": "humidite|isolation|enduit|bati-ancien|autre"
 }`;
