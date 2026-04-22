@@ -3,7 +3,7 @@
  * FAIRĒKO · Proxy Odoo pour Fabien-IA
  * =============================================================================
  *
- * Fichier    : netlify/fonctions/odoo-proxy.mjs
+ * Fichier    : netlify/functions/odoo-proxy.mjs
  * Route      : /api/odoo  (voir netlify.toml)
  * Version    : 1.0  —  22 avril 2026
  *
