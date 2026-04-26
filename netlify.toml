@@ -7,7 +7,7 @@
 
 [[redirects]]
   from = "/api/fabien"
-  to = "/.netlify/functions/fabien"
+  to = "/.netlify/functions/fabien-v2"
   status = 200
   force = true
 
