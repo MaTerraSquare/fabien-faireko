@@ -26,3 +26,10 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"
     Access-Control-Allow-Methods = "POST, GET, OPTIONS"
+
+
+[[redirects]]
+  from = "/api/fabien-v2"
+    to = "/.netlify/functions/fabien-v2"
+      status = 200
+        force = true
