@@ -53,6 +53,11 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+html, body {
+  height: 100vh;        /* fallback navigateurs anciens */
+  height: 100dvh;       /* dynamic viewport height — gère barre URL mobile iOS */
+  margin: 0;
+}
 body {
   font-family: var(--font-body);
   background: var(--fe-bg);
@@ -60,7 +65,9 @@ body {
   line-height: 1.7;
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
-  padding-bottom: 90px; /* espace pour la barre de saisie fixe */
+  /* espace barre de saisie + ajustement clavier virtuel mobile */
+  padding-bottom: calc(90px + var(--kb-h, 0px));
+  overflow-x: hidden;
 }
 
 /* ========================== BANDEAU BETA ========================== */
@@ -576,7 +583,7 @@ body {
 /* ========================== INPUT BAR (FIXE EN BAS) ========================== */
 .fe-input {
   position: fixed;
-  bottom: 0;
+  bottom: var(--kb-h, 0px);              /* suit le clavier virtuel iOS/Android */
   left: 0;
   right: 0;
   border-top: 1px solid var(--fe-border);
@@ -587,6 +594,7 @@ body {
   background: var(--fe-bg);
   box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
   z-index: 100;
+  transition: bottom 180ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .fe-input-inner {
   display: flex;
@@ -1406,6 +1414,24 @@ function updateProgress(etape) {
   </div>
 </div>
 
+<!-- Fix clavier virtuel iOS/Android : la barre suit visualViewport -->
+<script>
+(function() {
+  if (!window.visualViewport) return;
+  var root = document.documentElement;
+  function updateKb() {
+    var kb = Math.max(
+      0,
+      window.innerHeight - window.visualViewport.height - window.visualViewport.offsetTop
+    );
+    root.style.setProperty('--kb-h', kb + 'px');
+  }
+  window.visualViewport.addEventListener('resize', updateKb);
+  window.visualViewport.addEventListener('scroll', updateKb);
+  window.addEventListener('orientationchange', function() { setTimeout(updateKb, 200); });
+  updateKb();
+})();
+</script>
+
 </body>
 </html>
-
