@@ -1,7 +1,10 @@
 [build]
   publish = "."
   functions = "functions"
-  
+
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "ODOO_URL,ODOO_DB,ODOO_UID,ODOO_LOGIN"
+
 [[redirects]]
   from = "/api/fabien"
   to = "/.netlify/functions/fabien"
@@ -20,16 +23,15 @@
   status = 200
   force = true
 
+[[redirects]]
+  from = "/api/fabien-v2"
+  to = "/.netlify/functions/fabien-v2"
+  status = 200
+  force = true
+
 [[headers]]
   for = "/api/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"
     Access-Control-Allow-Methods = "POST, GET, OPTIONS"
-
-
-[[redirects]]
-  from = "/api/fabien-v2"
-    to = "/.netlify/functions/fabien-v2"
-      status = 200
-        force = true
