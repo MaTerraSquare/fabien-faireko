@@ -5,8 +5,17 @@
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "ODOO_URL,ODOO_DB,ODOO_UID,ODOO_LOGIN"
 
+# -----------------------------------------------------------------------------
+# Routes API → fonctions Netlify
+# -----------------------------------------------------------------------------
 [[redirects]]
   from = "/api/fabien"
+  to = "/.netlify/functions/fabien-v2"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/fabien-v2"
   to = "/.netlify/functions/fabien-v2"
   status = 200
   force = true
@@ -23,15 +32,32 @@
   status = 200
   force = true
 
-[[redirects]]
-  from = "/api/fabien-v2"
-  to = "/.netlify/functions/fabien-v2"
-  status = 200
-  force = true
-
+# -----------------------------------------------------------------------------
+# Headers CORS sur /api/*
+# -----------------------------------------------------------------------------
 [[headers]]
   for = "/api/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"
     Access-Control-Allow-Methods = "POST, GET, OPTIONS"
+
+# -----------------------------------------------------------------------------
+# Timeouts étendus pour les fonctions IA
+# -----------------------------------------------------------------------------
+# Plan Pro Netlify : timeout max 26s par invocation.
+# fabien-v2 peut enchaîner jusqu'à 3 cycles d'outils → 8-15s en cas d'aller-retour.
+# odoo-proxy : appels JSON-RPC vers Odoo, parfois lents.
+# -----------------------------------------------------------------------------
+
+[functions."fabien-v2"]
+  timeout = 26
+
+[functions."odoo-proxy"]
+  timeout = 26
+
+[functions."fabien"]
+  timeout = 26
+
+[functions."prescribe"]
+  timeout = 26
