@@ -235,9 +235,55 @@ async function toolSearchProducts(input) {
   // Log côté serveur pour debug (visible dans logs Netlify)
   console.log(`[search_products] query="${input.query || ''}" cat="${input.category || ''}" → ${produits.length} produits`);
 
+  // Si 0 produits avec filtre IA, on cherche SANS filtre IA pour dire à Claude
+  // si le produit existe en base mais est filtré par la doctrine.
+  // Ça évite les "j'ai rien trouvé" trompeurs : Claude saura que le produit
+  // existe mais n'est pas exposé à l'IA, et pourra le dire honnêtement.
+  let hint_existe_hors_ia = null;
+  if (produits.length === 0 && input.query) {
+    try {
+      const q = input.query.trim();
+      // Domaine SANS filtre IA, juste les actifs publiés ou non
+      const domaineHorsIA = [
+        ["active", "=", true],
+        "|", "|", "|",
+        ["name", "ilike", q],
+        ["default_code", "ilike", q],
+        ["description_sale", "ilike", q],
+        ["x_ia_tags", "ilike", q]
+      ];
+      const horsIA = await appelOdoo(
+        "product.template",
+        "search_read",
+        [domaineHorsIA],
+        { fields: ["id", "name", "x_owner_entity", "x_visible_ia", "x_niveau_confiance", "website_published"], limit: 3 }
+      );
+      if (horsIA.length > 0) {
+        hint_existe_hors_ia = {
+          existe_en_base: true,
+          count_hors_filtre_ia: horsIA.length,
+          message_pour_ia: `${horsIA.length} produit(s) correspondent en base Odoo mais ne sont PAS exposés à l'IA. Raisons possibles : champ x_owner_entity≠FAIREKO, x_visible_ia non coché, x_niveau_confiance non renseigné (doit être "2" ou "3"), ou website_published=false. Donne cette info à l'utilisateur honnêtement au lieu de dire "j'ai rien trouvé".`,
+          exemples: horsIA.map(p => ({
+            id: p.id,
+            name: p.name,
+            x_owner_entity: p.x_owner_entity || null,
+            x_visible_ia: p.x_visible_ia || false,
+            x_niveau_confiance: p.x_niveau_confiance || null,
+            website_published: p.website_published || false
+          }))
+        };
+        console.log(`[search_products] hors_filtre_ia="${q}" → ${horsIA.length} produits trouvés mais filtrés`);
+      }
+    } catch (e) {
+      // Si la requête hors filtre IA plante, on ignore — c'est juste un hint
+      console.error(`[search_products] hint_hors_ia erreur:`, e.message);
+    }
+  }
+
   return {
     count: produits.length,
-    products: produits
+    products: produits,
+    ...(hint_existe_hors_ia && { _hint: hint_existe_hors_ia })
   };
 }
 
