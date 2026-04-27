@@ -18,6 +18,7 @@
  *   1. search_products       — recherche dans le catalogue filtré IA
  *   2. get_product_details   — fiche technique complète d'un produit
  *   3. list_categories       — les 21 catégories techniques FAIREKO
+ *   4. search_doctrine       — recherche dans Knowledge Odoo (doctrine FAIRĒKO)
  *
  * Sécurité
  * --------
@@ -329,6 +330,102 @@ async function toolGetProductDetails(input) {
 }
 
 // -----------------------------------------------------------------------------
+// Tool 4 : search_doctrine — recherche dans Knowledge Odoo
+// -----------------------------------------------------------------------------
+//
+// Interroge le modèle knowledge.article pour exposer à Fabien la doctrine
+// FAIRĒKO écrite dans le module Knowledge d'Odoo (humidité-pathologies,
+// biosourcés, bâti ancien wallon, COM-CAL, adaptation climatique, systèmes ITI…).
+//
+// Le champ `body` de knowledge.article est en HTML : on le nettoie pour
+// renvoyer du texte propre à Claude Haiku.
+//
+// Pas de filtre doctrinal "x_visible_ia" sur Knowledge : on suppose que tout
+// article visible en interne est destiné à servir Fabien (à toi d'arbitrer
+// la visibilité dans Odoo via les ACL Knowledge — privé/workspace/public).
+//
+async function toolSearchDoctrine(input) {
+  const q = (input.query || "").trim();
+  if (!q) {
+    return { count: 0, articles: [], message: "query vide" };
+  }
+
+  // Limite : défaut 3, max 5, min 1
+  let limit = parseInt(input.limit, 10);
+  if (isNaN(limit) || limit < 1) limit = 3;
+  if (limit > 5) limit = 5;
+
+  // Domaine : recherche sur titre OU contenu, articles non supprimés
+  const domaine = [
+    ["is_article_item", "=", false],   // exclut les sub-items techniques
+    "|",
+    ["name", "ilike", q],
+    ["body", "ilike", q]
+  ];
+
+  let articles;
+  try {
+    articles = await appelOdoo(
+      "knowledge.article",
+      "search_read",
+      [domaine],
+      {
+        fields: ["id", "name", "body", "parent_id"],
+        limit,
+        order: "favorite_count desc, write_date desc"
+      }
+    );
+  } catch (e) {
+    // Si knowledge.article n'existe pas (module non installé) ou champ absent,
+    // on dégrade proprement plutôt que planter.
+    console.error(`[search_doctrine] erreur Odoo:`, e.message);
+    return {
+      count: 0,
+      articles: [],
+      error: "Knowledge Odoo non accessible ou non installé",
+      detail: e.message
+    };
+  }
+
+  // Nettoyage HTML → texte brut, troncature à 1500 chars par article
+  // pour ne pas exploser le contexte de Claude Haiku
+  const articlesNettoyes = articles.map(a => {
+    let texte = (a.body || "")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<\/h[1-6]>/gi, "\n\n")
+      .replace(/<\/li>/gi, "\n")
+      .replace(/<[^>]+>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    if (texte.length > 1500) {
+      texte = texte.substring(0, 1500) + "…";
+    }
+
+    return {
+      id: a.id,
+      titre: a.name,
+      extrait: texte,
+      url: `/odoo/knowledge/${a.id}`
+    };
+  });
+
+  console.log(`[search_doctrine] query="${q}" → ${articles.length} articles`);
+
+  return {
+    count: articlesNettoyes.length,
+    articles: articlesNettoyes
+  };
+}
+
+// -----------------------------------------------------------------------------
 // Tool 3 : list_categories
 // -----------------------------------------------------------------------------
 async function toolListCategories() {
@@ -347,7 +444,8 @@ async function toolListCategories() {
 const OUTILS = {
   search_products: toolSearchProducts,
   get_product_details: toolGetProductDetails,
-  list_categories: toolListCategories
+  list_categories: toolListCategories,
+  search_doctrine: toolSearchDoctrine
 };
 
 // -----------------------------------------------------------------------------
