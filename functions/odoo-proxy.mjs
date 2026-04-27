@@ -202,7 +202,18 @@ async function toolSearchProducts(input) {
   }
 
   if (input.query && typeof input.query === "string") {
-    domaine.push(["name", "ilike", input.query.trim()]);
+    const q = input.query.trim();
+    if (q.length > 0) {
+      // Recherche élargie : name OR default_code OR description_sale OR x_ia_tags
+      // Syntaxe Odoo : '|' devant N-1 conditions OR (3 OR ⇒ 3 '|')
+      domaine.push(
+        "|", "|", "|",
+        ["name", "ilike", q],
+        ["default_code", "ilike", q],
+        ["description_sale", "ilike", q],
+        ["x_ia_tags", "ilike", q]
+      );
+    }
   }
 
   // Limite : défaut 5, max 10, min 1
@@ -220,6 +231,9 @@ async function toolSearchProducts(input) {
       order: "x_niveau_confiance desc, name asc"
     }
   );
+
+  // Log côté serveur pour debug (visible dans logs Netlify)
+  console.log(`[search_products] query="${input.query || ''}" cat="${input.category || ''}" → ${produits.length} produits`);
 
   return {
     count: produits.length,
