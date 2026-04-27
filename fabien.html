@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -835,6 +836,67 @@ button { font-family: inherit; cursor: pointer; }
   opacity: 0.4;
   pointer-events: none;
 }
+
+
+/* =========================================================================
+   FAIRĒKO — Fabien V2 — fix UX (Denis, 27/04/2026)
+   1) Bulle "Fabien réfléchit" dans le flux conversation
+   2) Mobile : bulles plus larges (avatar 90px, padding symétrique)
+   3) Status text "Fabien réfléchit…" plus lisible
+   ========================================================================= */
+.fbn-msg.fbn-msg-thinking {
+  align-self: flex-start;
+  background: var(--bg-msg-fab, #ffffff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 18px 18px 18px 4px;
+  padding: 14px 18px;
+  max-width: 88px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+}
+.fbn-msg.fbn-msg-thinking .fbn-thinking-dots {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+.fbn-msg.fbn-msg-thinking .fbn-thinking-dots span {
+  width: 7px;
+  height: 7px;
+  background: var(--accent, #B89B70);
+  border-radius: 50%;
+  animation: fbn-bounce-msg 1.2s ease-in-out infinite;
+}
+.fbn-msg.fbn-msg-thinking .fbn-thinking-dots span:nth-child(2) { animation-delay: .18s; }
+.fbn-msg.fbn-msg-thinking .fbn-thinking-dots span:nth-child(3) { animation-delay: .36s; }
+@keyframes fbn-bounce-msg {
+  0%, 80%, 100% { transform: translateY(0);   opacity: .4; }
+  40%           { transform: translateY(-6px); opacity: 1;  }
+}
+.fbn-character-status {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+}
+@media (max-width: 720px) {
+  :root {
+    --fab-w: 90px !important;
+    --fab-margin: 6px !important;
+  }
+  .fbn-conv {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+  .fbn-msg { max-width: 86% !important; }
+  .fbn-character {
+    width: 90px !important;
+    right: 4px !important;
+    bottom: 70px !important;
+  }
+  .fbn-character-status {
+    font-size: 12px !important;
+    bottom: -18px !important;
+    white-space: nowrap !important;
+  }
+}
+/* === fin fix UX 27/04 === */
 </style>
 </head>
 <body>
@@ -1518,6 +1580,42 @@ conv.scrollTop = conv.scrollHeight;
   update();
 })();
 
+
+
+/* === FAIRĒKO Fabien V2 — fix UX 27/04/2026 ============================= */
+/* Hook setThinking : bulle "..." dans le flux conversation                 */
+(function fbnHookThinkingBubble() {
+  if (typeof window.setThinking !== 'function') {
+    console.warn('[fabien-fix] window.setThinking introuvable — hook ignoré');
+    return;
+  }
+  if (window._origSetThinking) return;
+  window._origSetThinking = window.setThinking;
+  window.setThinking = function (on) {
+    try { window._origSetThinking(on); } catch (e) { console.error('[fabien-fix] origSetThinking', e); }
+    var conv = document.querySelector('main.fbn-conv');
+    if (!conv) return;
+    var bubble = document.getElementById('fbn-msg-thinking');
+    if (on) {
+      if (!bubble) {
+        bubble = document.createElement('div');
+        bubble.id = 'fbn-msg-thinking';
+        bubble.className = 'fbn-msg fbn-msg-fab fbn-msg-thinking';
+        bubble.setAttribute('aria-live', 'polite');
+        bubble.setAttribute('aria-label', 'Fabien réfléchit');
+        bubble.innerHTML =
+          '<div class="fbn-thinking-dots" aria-hidden="true">' +
+          '<span></span><span></span><span></span>' +
+          '</div>';
+        conv.appendChild(bubble);
+      }
+      conv.scrollTop = conv.scrollHeight;
+    } else {
+      if (bubble) bubble.remove();
+    }
+  };
+})();
+/* === fin fix UX 27/04 === */
 </script>
 
 </body>
