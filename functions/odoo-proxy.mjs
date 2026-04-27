@@ -27,7 +27,10 @@
  * Le filtre IA doctrinal est appliqué CÔTÉ SERVEUR pour chaque requête :
  *   - x_owner_entity = "FAIREKO"
  *   - x_visible_ia = true
- *   - x_niveau_confiance in ["2", "3"]
+ *   - x_niveau_confiance in ["3", "4", "5"]
+ *     ("3" = validé Denis sans preuve formelle,
+ *      "4" = validé avec preuves officielles ETA/ATG/EPD,
+ *      "5" = super méga validé : preuves + retour chantier + dossier complet)
  *   - website_published = true
  *
  * Ce filtre est non-négociable : Claude ne peut pas le contourner, même via
@@ -49,7 +52,7 @@
 const FILTRE_IA_DOCTRINAL = [
   ["x_owner_entity", "=", "FAIREKO"],
   ["x_visible_ia", "=", true],
-  ["x_niveau_confiance", "in", ["2", "3"]],
+  ["x_niveau_confiance", "in", ["3", "4", "5"]],
   ["website_published", "=", true]
 ];
 
@@ -262,7 +265,7 @@ async function toolSearchProducts(input) {
         hint_existe_hors_ia = {
           existe_en_base: true,
           count_hors_filtre_ia: horsIA.length,
-          message_pour_ia: `${horsIA.length} produit(s) correspondent en base Odoo mais ne sont PAS exposés à l'IA. Raisons possibles : champ x_owner_entity≠FAIREKO, x_visible_ia non coché, x_niveau_confiance non renseigné (doit être "2" ou "3"), ou website_published=false. Donne cette info à l'utilisateur honnêtement au lieu de dire "j'ai rien trouvé".`,
+          message_pour_ia: `${horsIA.length} produit(s) correspondent en base Odoo mais ne sont PAS exposés à l'IA. Raisons possibles : champ x_owner_entity≠FAIREKO, x_visible_ia non coché, x_niveau_confiance non renseigné ou trop bas (doit être "3", "4" ou "5" — niveaux validés Denis avec ou sans preuve), ou website_published=false. Donne cette info à l'utilisateur honnêtement au lieu de dire "j'ai rien trouvé".`,
           exemples: horsIA.map(p => ({
             id: p.id,
             name: p.name,
