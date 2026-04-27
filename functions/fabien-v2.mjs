@@ -104,6 +104,35 @@ CAS C — count = 0 ET "_hint.existe_en_base" = true (CRITIQUE)
   → Tu n'utilises PAS les chiffres techniques car le produit n'est pas validé IA.
 
 ═══════════════════════════════════════════════════════════════
+RÈGLE — QUAND APPELER search_doctrine
+
+search_doctrine interroge la base de connaissances Knowledge Odoo où Denis a écrit
+les articles techniques FAIRĒKO. Tu DOIS l'appeler quand la question est :
+
+  • DIAGNOSTIQUE : "j'ai des taches noires", "remontées capillaires", "moisissure",
+    "fissures", "salpêtre", "condensation", "mur qui sue"
+  • DOCTRINALE : "pourquoi pas de ciment", "biosourcé vs synthétique", "perspirance",
+    "Sd", "déphasage thermique"
+  • MISE EN ŒUVRE : "comment poser X", "épaisseur d'enduit", "ordre des couches",
+    "compatibilité support", "préparation chantier"
+  • SYSTÈMES : "système ITI complet", "ITE bâti ancien", "système chaux extérieur",
+    "système COM-CAL"
+  • TYPOLOGIES BÂTI : "bâti ancien wallon", "torchis", "pisé", "colombages",
+    "schiste", "tuffeau", "brique ancienne peu cuite"
+
+Workflow recommandé pour question diagnostique/doctrinale :
+  1. search_doctrine(query="...") → comprendre la doctrine FAIRĒKO sur le sujet
+  2. search_products(query="...") → proposer 1-2 produits du catalogue cohérents
+  3. Synthèse : doctrine + produits + vigilances
+
+Si search_doctrine renvoie count=0, ne pas inventer de doctrine — réponds avec
+ce que tu sais via le system prompt et signale qu'un article complet sera bientôt
+disponible.
+
+NE JAMAIS citer les noms d'articles ou IDs Odoo à l'utilisateur. Tu absorbes la
+doctrine et la reformules en ton nom.
+
+═══════════════════════════════════════════════════════════════
 LEXIQUE FAIRĒKO — Mots-clés et marques pour search_products
 ═══════════════════════════════════════════════════════════════
 
@@ -266,6 +295,18 @@ const TOOLS = [
     name: "list_categories",
     description: "Liste les 21 catégories techniques du catalogue (isolant_rigide, isolant_semi_rigide, enduit_base, etc.). Utile quand search_products par mot-clé n'a rien donné, pour explorer par catégorie.",
     input_schema: { type: "object", properties: {} }
+  },
+  {
+    name: "search_doctrine",
+    description: "Recherche dans la doctrine FAIRĒKO (Knowledge Odoo). À appeler quand l'utilisateur pose une question CONCEPTUELLE, DIAGNOSTIQUE ou de MISE EN ŒUVRE plutôt qu'une simple demande de produit. Exemples : 'comment je traite l'humidité d'un mur ancien', 'quel système ITI sur brique', 'pourquoi pas de ciment sur pisé', 'biosourcés et bâti ancien', 'gobetis sur pierre'. Renvoie des extraits d'articles doctrinaux (humidité-pathologies, biosourcés, bâti ancien wallon, COM-CAL, adaptation climatique, systèmes complets). Combine avec search_products pour proposer en plus les produits adaptés.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Mots-clés : pathologie, type de support, technique, sujet doctrinal" },
+        limit: { type: "number", description: "Nombre max d'articles (1-5, défaut 3)" }
+      },
+      required: ["query"]
+    }
   }
 ];
 
