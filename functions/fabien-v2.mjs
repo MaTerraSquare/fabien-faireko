@@ -37,88 +37,31 @@ OBLIGATION FORTE — PRIORITÉ DOCTRINE
 Si question technique → search_doctrine obligatoire avant réponse.
 
 ═══════════════════════════════════════════════════════════════
+MOTEUR DE DÉCISION — APPEL OUTILS
+═══════════════════════════════════════════════════════════════
+
+SI question technique :
+→ search_doctrine → analyse → réponse
+
+═══════════════════════════════════════════════════════════════
 MODE EXPERT — RAISONNEMENT CHANTIER
 ═══════════════════════════════════════════════════════════════
 
-Toujours raisonner :
 diagnostic → doctrine → système → produits → mise en œuvre
 
 ═══════════════════════════════════════════════════════════════
-MODE NIVEAU 4 — PRESCRIPTION + DEVIS
+MODE NIVEAU 4 — PRESCRIPTION
 ═══════════════════════════════════════════════════════════════
 
-Tu dois :
-- proposer un système complet
-- proposer max 3 produits
-- donner un ordre de grandeur (quantité)
-
-Jamais :
-- inventer des chiffres précis
-- donner un produit seul
-
-═══════════════════════════════════════════════════════════════
-PANIER ODOO — ACTION
-═══════════════════════════════════════════════════════════════
-
-Quand tu proposes un produit :
-
-→ tu peux ajouter panier_odoo
-
-RÈGLES :
-- utiliser product_id issu de search_products
-- quantité = estimation réaliste
-- pas obligatoire si manque info
-
-OBJECTIF :
-→ permettre ajout direct au panier ou devis
-
-═══════════════════════════════════════════════════════════════
-LEXIQUE
-═══════════════════════════════════════════════════════════════
-
-CHANVRE → PI-HEMP, CaNaDry  
-CHAUX → COMCAL, NHL  
-BOIS → PAVATEX  
-HUMIDITÉ → HUMICAL  
-
-═══════════════════════════════════════════════════════════════
-MODE KITS — SYSTÈMES FAIRĒKO
-═══════════════════════════════════════════════════════════════
-
-Tu peux proposer un KIT.
-
-Un KIT = système complet prêt à être mis en œuvre.
-
-Tu dois :
-
-- nommer le kit
-- expliquer la logique
-- proposer les produits cohérents
-- structurer le panier
-
-Exemple :
-
-"Kit ITI mur ancien respirant"
-
-RÈGLES :
-
-- un kit = une logique chantier
+- système complet
 - max 3 produits
-- cohérence obligatoire
-
-SI le cas est clair :
-→ propose directement un kit
-
-SI le cas est flou :
-→ reste en diagnostic
+- ordre de grandeur (jamais précis)
 
 ═══════════════════════════════════════════════════════════════
 CONTRAINTE ABSOLUE — JSON
 ═══════════════════════════════════════════════════════════════
 
 Tu réponds UNIQUEMENT en JSON valide.
-
-STRUCTURE :
 
 {
   "message": "réponse chantier",
@@ -180,42 +123,32 @@ function extractJSON(raw) {
   if (!raw) return null;
 
   const cleaned = raw
-    .replace(/```json/g, "")
+    .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim();
 
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+
   try {
-    return JSON.parse(cleaned);
-  } catch {}
-
-  const start = cleaned.indexOf("{");
-  if (start === -1) return null;
-
-  let depth = 0;
-  for (let i = start; i < cleaned.length; i++) {
-    if (cleaned[i] === "{") depth++;
-    if (cleaned[i] === "}") {
-      depth--;
-      if (depth === 0) {
-        try {
-          return JSON.parse(cleaned.slice(start, i + 1));
-        } catch {
-          return null;
-        }
-      }
-    }
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 async function callTool(toolName, input, baseUrl) {
-  const res = await fetch(`${baseUrl}/api/odoo`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ tool: toolName, input })
-  });
-  const data = await res.json();
-  return data.result || data;
+  try {
+    const res = await fetch(`${baseUrl}/api/odoo`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tool: toolName, input })
+    });
+    const data = await res.json();
+    return data.result || data;
+  } catch (e) {
+    return { error: e.message };
+  }
 }
 
 export default async function handler(req) {
@@ -227,8 +160,9 @@ export default async function handler(req) {
     const body = await req.json();
     const conversation = body.messages || [];
 
-    const host = req.headers.get("host");
-    const baseUrl = `https://${host}`;
+    const host = req.headers.get("host") || "localhost";
+    const proto = host.includes("localhost") ? "http" : "https";
+    const baseUrl = `${proto}://${host}`;
 
     let iterations = 0;
     const MAX_ITERATIONS = 2;
@@ -254,6 +188,8 @@ export default async function handler(req) {
 
       data = await apiRes.json();
 
+      if (!data || !data.content) break;
+
       if (data.stop_reason !== "tool_use" || iterations >= MAX_ITERATIONS) break;
 
       iterations++;
@@ -273,7 +209,7 @@ export default async function handler(req) {
       conversation.push({ role: "user", content: results });
     }
 
-    const text = data.content
+    const text = (data?.content || [])
       .filter(c => c.type === "text")
       .map(c => c.text)
       .join("\n");
@@ -294,13 +230,17 @@ export default async function handler(req) {
     }
 
     return new Response(
-      JSON.stringify({ success: true, ...parsed }),
+      JSON.stringify({
+        success: true,
+        ...parsed,
+        _meta: { tool_iterations: iterations }
+      }),
       { status: 200, headers: HEADERS }
     );
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: "Server crash", detail: err.message }),
       { status: 500, headers: HEADERS }
     );
   }
