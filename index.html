@@ -989,7 +989,7 @@ setPosture('default');
  *  BACKEND STATE
  * ========================================================= */
 var API = '';
-var history = [];
+var convHistory = [];
 var rapport = { items: [], conseils: [] };
 
 // Restaurer rapport depuis localStorage si présent
@@ -1166,7 +1166,7 @@ function sendMessage() {
   if (!text) return;
 
   addUserMsg(text);
-  history.push({ role: 'user', content: text });
+  convHistory.push({ role: 'user', content: text });
   input.value = '';
   autoresize();
   sendBtn.disabled = true;
@@ -1179,9 +1179,9 @@ function sendMessage() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       // Compat 2 backends : V2 attend "messages", certains attendent "message"+"history"
-      messages: history.slice(-10),
+      messages: convHistory.slice(-10),
       message: text,
-      history: history.slice(-10),
+      history: convHistory.slice(-10),
       contexte: {
         rapport_actuel: rapport.items.map(function(i){ return { slug: i.slug, nom: i.nom, prix: i.prix }; })
       }
@@ -1203,7 +1203,7 @@ function sendMessage() {
 
     setPosture(data && data.posture ? data.posture : 'conseil');
     addFabienBubble(data || {});
-    history.push({ role: 'assistant', content: JSON.stringify(data || {}) });
+    convHistory.push({ role: 'assistant', content: JSON.stringify(data || {}) });
   })
   .catch(function() {
     setThinking(false);
@@ -1482,5 +1482,4 @@ conv.scrollTop = conv.scrollHeight;
 </script>
 
 </body>
-
-  feat(ui): premium V4 redesign — Fabien character + iMessage bubbles + rich input
+</html>
