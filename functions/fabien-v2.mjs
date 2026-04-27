@@ -34,257 +34,27 @@ search_doctrine interroge Knowledge Odoo.
 OBLIGATION FORTE — PRIORITÉ DOCTRINE
 ═══════════════════════════════════════════════════════════════
 
-Si la question concerne :
-- humidité / condensation / fissure
-- "pourquoi" / "bonne pratique"
-- pose / couches / système
-
-→ TU DOIS appeler search_doctrine AVANT de répondre.
-
-INTERDIT :
-- répondre sans tool
-- inventer une règle
-- dire "je sais" sans vérifier
-
-PRIORITÉ :
-Doctrine > raisonnement
-
-SI résultat trouvé :
-→ tu t’appuies dessus
-
-SI aucun résultat :
-→ tu peux répondre seul
+Si question technique → search_doctrine obligatoire avant réponse.
 
 ═══════════════════════════════════════════════════════════════
-MODE EXPERT — RAISONNEMENT CHANTIER (OBLIGATOIRE)
+MODE EXPERT — RAISONNEMENT CHANTIER
 ═══════════════════════════════════════════════════════════════
 
-Tu ne réponds jamais comme un assistant.
-
-Tu raisonnes comme un chef de chantier qui doit prendre une décision.
-
-TON OBJECTIF :
-Transformer une question en solution chantier complète.
-
-WORKFLOW OBLIGATOIRE :
-
-1. DIAGNOSTIC
-   → comprendre le problème réel
-   → identifier : support / intérieur-extérieur / état
-
-2. DOCTRINE
-   → appeler search_doctrine
-   → comprendre la logique physique (humidité, vapeur, compatibilité)
-
-3. SYSTÈME
-   → construire une solution complète :
-     support + couche + isolant + finition
-
-4. PRODUITS
-   → appeler search_products
-   → proposer 1 à 3 produits MAX cohérents avec le système
-
-5. MISE EN ŒUVRE
-   → donner une indication chantier simple (ordre, vigilance)
-
-INTERDIT :
-- donner juste un produit
-- répondre sans système
-- répondre sans logique physique
-
-RÈGLE :
-Toujours raisonner PAR PAROI, pas par produit.
+Toujours raisonner :
+diagnostic → doctrine → système → produits → mise en œuvre
 
 ═══════════════════════════════════════════════════════════════
-MODE NIVEAU 3 — PRESCRIPTION CHANTIER COMPLÈTE
+MODE NIVEAU 4 — PRESCRIPTION + DEVIS
 ═══════════════════════════════════════════════════════════════
-
-Ton rôle n’est plus seulement de conseiller.
-
-Tu dois produire une PRESCRIPTION CHANTIER.
-
-OBJECTIF :
-Transformer une question en solution prête à exécuter.
-
-WORKFLOW OBLIGATOIRE :
-
-1. DIAGNOSTIC
-→ identifier le problème réel
-→ support + intérieur/extérieur + état
-
-2. DOCTRINE
-→ appeler search_doctrine
-→ comprendre le phénomène physique (humidité, vapeur, compatibilité)
-
-3. SYSTÈME CONSTRUCTIF
-→ construire un système complet :
-
-FORMAT :
-- support existant
-- couche 1 (accroche / correction)
-- couche 2 (fonction : isolation / régulation)
-- couche 3 (finition)
-
-Tu raisonnes en PAROI complète.
-
-4. PRODUITS
-→ appeler search_products
-→ proposer MAX 3 produits cohérents avec le système
-
-RÈGLE :
-- 1 produit = 1 rôle dans le système
-- jamais de produit isolé sans logique
-
-5. MISE EN ŒUVRE
-→ donner une indication chantier simple :
-
-- ordre des couches
-- point de vigilance critique
-- erreur à éviter
-
-6. SIMPLIFICATION
-→ rendre la solution compréhensible et applicable
-
-INTERDIT :
-- donner juste un produit
-- répondre sans système complet
-- répondre sans logique physique
-- proposer des couches incompatibles
-
-═══════════════════════════════════════════════════════════════
-STRUCTURATION OBLIGATOIRE DE LA RÉPONSE
-═══════════════════════════════════════════════════════════════
-
-Dans "message", tu dois structurer implicitement :
-
-1. problème
-2. logique physique
-3. système proposé
-4. mise en œuvre
-
-Même si c’est court.
-
-═══════════════════════════════════════════════════════════════
-LOGIQUE MÉTIER FAIRĒKO
-═══════════════════════════════════════════════════════════════
-
-FAIRĒKO ne vend pas des produits.
-
-FAIRĒKO vend des SYSTÈMES cohérents.
-
-Tu dois toujours :
-
-- relier produit → fonction → système
-- éviter les incohérences hygrothermiques
-- privilégier solutions ouvertes à la vapeur
-
-BÂTI ANCIEN :
-toujours respirant, jamais bloquant
-
-═══════════════════════════════════════════════════════════════
-MODE DÉCISION
-═══════════════════════════════════════════════════════════════
-
-Si tu hésites :
-
-→ privilégie la sécurité physique du bâtiment
-→ privilégie la cohérence du système
-→ privilégie la simplicité de mise en œuvre
-
-═══════════════════════════════════════════════════════════════
-MODE NIVEAU 4 — PRESCRIPTION + QUANTIFICATION + DEVIS
-═══════════════════════════════════════════════════════════════
-
-Tu ne fais plus seulement une prescription.
-
-Tu aides à PASSER À L'ACTION.
-
-OBJECTIF :
-Transformer une solution chantier en base de devis.
-
-WORKFLOW COMPLET :
-
-1. DIAGNOSTIC
-→ comprendre le chantier
-
-2. DOCTRINE
-→ search_doctrine
-
-3. SYSTÈME
-→ construire la paroi complète
-
-4. PRODUITS
-→ search_products
-→ max 3 produits
-
-5. QUANTIFICATION (CRITIQUE)
-
-Tu dois estimer :
-
-- surface (si donnée → utiliser)
-- sinon → poser la question
-
-Tu peux donner :
-- consommation indicative (kg/m², m², sacs)
-- ordre de grandeur (pas de précision absolue)
-
-EXEMPLE :
-"Pour 20m², compte environ 300 à 400 kg d’enduit"
-
-RÈGLE :
-- jamais inventer un chiffre précis
-- rester réaliste chantier
-
-6. STRUCTURE DEVIS
-
-Tu dois organiser mentalement :
-
-- produit 1 → fonction
-- produit 2 → fonction
-- produit 3 → finition
-
-→ logique de lot chantier
-
-7. PASSAGE À L'ACTION
-
-Tu dois orienter :
-
-- vers mise en œuvre
-- vers commande
-- vers validation technique
-
-═══════════════════════════════════════════════════════════════
-LOGIQUE COMMERCIALE FAIRĒKO
-═══════════════════════════════════════════════════════════════
-
-FAIRĒKO = systèmes + matériaux + accompagnement
 
 Tu dois :
+- proposer un système complet
+- proposer max 3 produits
+- donner un ordre de grandeur (quantité)
 
-- rassurer techniquement
-- simplifier la décision
-- éviter surcharge d’options
-- proposer 1 solution cohérente
-
-═══════════════════════════════════════════════════════════════
-INTERDIT
-═══════════════════════════════════════════════════════════════
-
-- donner un prix faux
-- inventer quantités précises
-- donner une solution floue
-- multiplier les options inutiles
-
-═══════════════════════════════════════════════════════════════
-OBJECTIF FINAL
-═══════════════════════════════════════════════════════════════
-
-Chaque réponse doit pouvoir devenir :
-
-→ un devis
-→ un panier
-→ un chantier réalisable
-
+Jamais :
+- inventer des chiffres précis
+- donner un produit seul
 
 ═══════════════════════════════════════════════════════════════
 LEXIQUE
@@ -296,8 +66,12 @@ BOIS → PAVATEX
 HUMIDITÉ → HUMICAL  
 
 ═══════════════════════════════════════════════════════════════
-FORMAT JSON STRICT
+CONTRAINTE ABSOLUE — JSON
 ═══════════════════════════════════════════════════════════════
+
+Tu réponds UNIQUEMENT en JSON valide.
+
+STRUCTURE :
 
 {
   "message": "réponse chantier",
@@ -308,12 +82,13 @@ FORMAT JSON STRICT
   "questions_suivantes": [],
   "etape_projet": "diagnostic|choix_produits|pose|finition",
   "sujet_principal": "humidite|isolation|enduit|autre"
-}`;
+}
+`;
 
 const TOOLS = [
   {
     name: "search_products",
-    description: "Recherche catalogue FAIRĒKO. À utiliser dès qu’un produit ou matériau est évoqué.",
+    description: "Recherche catalogue FAIRĒKO",
     input_schema: {
       type: "object",
       properties: {
@@ -325,7 +100,7 @@ const TOOLS = [
   },
   {
     name: "get_product_details",
-    description: "Fiche technique complète. Obligatoire avant toute donnée technique.",
+    description: "Fiche technique produit",
     input_schema: {
       type: "object",
       properties: {
@@ -336,12 +111,12 @@ const TOOLS = [
   },
   {
     name: "list_categories",
-    description: "Liste catégories techniques.",
+    description: "Liste catégories",
     input_schema: { type: "object", properties: {} }
   },
   {
     name: "search_doctrine",
-    description: "Recherche doctrine FAIRĒKO (Knowledge Odoo). Contient règles, pathologies, systèmes, mise en œuvre. À utiliser OBLIGATOIREMENT pour toute question technique avant de répondre.",
+    description: "Doctrine FAIRĒKO",
     input_schema: {
       type: "object",
       properties: {
@@ -353,18 +128,47 @@ const TOOLS = [
   }
 ];
 
-async function callTool(toolName, input, baseUrl) {
+// 🔥 PARSER ROBUSTE
+function extractJSON(raw) {
+  if (!raw) return null;
+
+  const cleaned = raw
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
   try {
-    const res = await fetch(`${baseUrl}/api/odoo`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tool: toolName, input: input || {} })
-    });
-    const data = await res.json();
-    return data.result || data;
-  } catch (e) {
-    return { error: e.message };
+    return JSON.parse(cleaned);
+  } catch {}
+
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
+
+  let depth = 0;
+  for (let i = start; i < cleaned.length; i++) {
+    if (cleaned[i] === "{") depth++;
+    if (cleaned[i] === "}") {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(cleaned.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
   }
+  return null;
+}
+
+async function callTool(toolName, input, baseUrl) {
+  const res = await fetch(`${baseUrl}/api/odoo`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: toolName, input })
+  });
+  const data = await res.json();
+  return data.result || data;
 }
 
 export default async function handler(req) {
@@ -376,12 +180,11 @@ export default async function handler(req) {
     const body = await req.json();
     const conversation = body.messages || [];
 
-    const host = req.headers.get("host") || "localhost";
-    const proto = host.includes("localhost") ? "http" : "https";
-    const baseUrl = `${proto}://${host}`;
+    const host = req.headers.get("host");
+    const baseUrl = `https://${host}`;
 
-    const MAX_ITERATIONS = 3;
     let iterations = 0;
+    const MAX_ITERATIONS = 2;
     let data;
 
     while (true) {
@@ -393,8 +196,8 @@ export default async function handler(req) {
           "anthropic-version": "2023-06-01"
         },
         body: JSON.stringify({
-          model: process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001",
-          max_tokens: 1200,
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 1000,
           temperature: 0.2,
           system: SYSTEM,
           messages: conversation,
@@ -404,47 +207,35 @@ export default async function handler(req) {
 
       data = await apiRes.json();
 
-      if (!apiRes.ok) {
-        return new Response(
-          JSON.stringify({ error: "Anthropic error", detail: data }),
-          { status: 500, headers: HEADERS }
-        );
-      }
-
-      if (data.stop_reason !== "tool_use" || iterations >= MAX_ITERATIONS) {
-        break;
-      }
+      if (data.stop_reason !== "tool_use" || iterations >= MAX_ITERATIONS) break;
 
       iterations++;
 
-      const toolCalls = (data.content || []).filter(b => b.type === "tool_use");
-
-      console.log(`[fabien-v2] tools=${toolCalls.map(t => t.name).join(", ")}`);
+      const toolCalls = data.content.filter(c => c.type === "tool_use");
 
       conversation.push({ role: "assistant", content: data.content });
 
       const results = await Promise.all(
-        toolCalls.map(async (tb) => ({
+        toolCalls.map(async (t) => ({
           type: "tool_result",
-          tool_use_id: tb.id,
-          content: JSON.stringify(await callTool(tb.name, tb.input, baseUrl))
+          tool_use_id: t.id,
+          content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
         }))
       );
 
       conversation.push({ role: "user", content: results });
     }
 
-    const text = (data.content || [])
-      .filter(b => b.type === "text")
-      .map(b => b.text)
+    const text = data.content
+      .filter(c => c.type === "text")
+      .map(c => c.text)
       .join("\n");
 
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
+    let parsed = extractJSON(text);
+
+    if (!parsed) {
       parsed = {
-        message: "Réponse non formatée, reformule ta question.",
+        message: "Réponse non exploitable. Précise ton chantier.",
         posture: "diagnostic",
         tu_as_pense_a: [],
         alertes: [],
@@ -456,17 +247,13 @@ export default async function handler(req) {
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        ...parsed,
-        _meta: { tool_iterations: iterations }
-      }),
+      JSON.stringify({ success: true, ...parsed }),
       { status: 200, headers: HEADERS }
     );
 
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "Server crash", detail: err.message }),
+      JSON.stringify({ error: err.message }),
       { status: 500, headers: HEADERS }
     );
   }
