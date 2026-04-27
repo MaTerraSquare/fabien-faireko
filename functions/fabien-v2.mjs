@@ -34,7 +34,7 @@ MAXIMUM 2 appels outils.
 RÈGLES CRITIQUES
 
 COM-CAL :
-- prêt à l’emploi
+- prêt à l'emploi
 - jamais ajouter sable
 - jamais ratio
 
@@ -203,19 +203,14 @@ export default async function handler(req) {
     /**
      * Extrait un objet JSON depuis une réponse LLM, même si elle est
      * enveloppée dans des code-fences markdown ou contient du texte parasite.
-     * Stratégie :
-     *   1. Strip les code-fences ```json ... ``` ou ``` ... ```
-     *   2. Trim
-     *   3. Si commence par { et finit par } → tente parse direct
-     *   4. Sinon trouve le 1er { et le } qui le ferme (équilibrage d'accolades)
      */
     function extractJSON(raw) {
       if (!raw || typeof raw !== "string") return null;
 
       // 1. Strip code-fences markdown (```json...``` ou ```...```)
       let cleaned = raw
-        .replace(/^\s*```(?:json)?\s*\n?/i, "")  // début
-        .replace(/\n?\s*```\s*$/i, "")            // fin
+        .replace(/^\s*```(?:json)?\s*\n?/i, "")
+        .replace(/\n?\s*```\s*$/i, "")
         .trim();
 
       // 2. Tentative parse direct
