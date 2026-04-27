@@ -200,20 +200,65 @@ export default async function handler(req) {
       .map(b => b.text)
       .join("\n");
 
-    let parsed;
+    /**
+     * Extrait un objet JSON depuis une réponse LLM, même si elle est
+     * enveloppée dans des code-fences markdown ou contient du texte parasite.
+     * Stratégie :
+     *   1. Strip les code-fences ```json ... ``` ou ``` ... ```
+     *   2. Trim
+     *   3. Si commence par { et finit par } → tente parse direct
+     *   4. Sinon trouve le 1er { et le } qui le ferme (équilibrage d'accolades)
+     */
+    function extractJSON(raw) {
+      if (!raw || typeof raw !== "string") return null;
 
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}$/);
+      // 1. Strip code-fences markdown (```json...``` ou ```...```)
+      let cleaned = raw
+        .replace(/^\s*```(?:json)?\s*\n?/i, "")  // début
+        .replace(/\n?\s*```\s*$/i, "")            // fin
+        .trim();
 
-      if (jsonMatch) {
-        parsed = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error("No JSON found");
+      // 2. Tentative parse direct
+      if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+        try { return JSON.parse(cleaned); } catch (_) { /* fallthrough */ }
       }
 
-    } catch {
+      // 3. Recherche par équilibrage d'accolades (gère JSON imbriqué)
+      const start = cleaned.indexOf("{");
+      if (start === -1) return null;
+
+      let depth = 0;
+      let inString = false;
+      let escape = false;
+      for (let i = start; i < cleaned.length; i++) {
+        const c = cleaned[i];
+        if (escape) { escape = false; continue; }
+        if (c === "\\") { escape = true; continue; }
+        if (c === '"') { inString = !inString; continue; }
+        if (inString) continue;
+        if (c === "{") depth++;
+        else if (c === "}") {
+          depth--;
+          if (depth === 0) {
+            const candidate = cleaned.slice(start, i + 1);
+            try { return JSON.parse(candidate); } catch (_) { return null; }
+          }
+        }
+      }
+      return null;
+    }
+
+    let parsed = extractJSON(text);
+
+    if (!parsed || typeof parsed !== "object") {
+      // Fallback : garde un message lisible (pas le JSON brut)
+      const cleanedFallback = text
+        .replace(/```(?:json)?/gi, "")
+        .replace(/```/g, "")
+        .trim();
       parsed = {
-        message: text.slice(0, 500),
+        message: cleanedFallback.slice(0, 800) ||
+                 "Désolé, je n'ai pas pu formuler de réponse claire. Reformule ta question ?",
         posture: "diagnostic",
         tu_as_pense_a: [],
         alertes: [],
@@ -223,6 +268,16 @@ export default async function handler(req) {
         sujet_principal: "autre"
       };
     }
+
+    // Garde-fou : champs obligatoires si LLM a oublié l'un
+    parsed.message = parsed.message || "";
+    parsed.posture = parsed.posture || "diagnostic";
+    parsed.tu_as_pense_a = Array.isArray(parsed.tu_as_pense_a) ? parsed.tu_as_pense_a : [];
+    parsed.alertes = Array.isArray(parsed.alertes) ? parsed.alertes : [];
+    parsed.produits_suggeres = Array.isArray(parsed.produits_suggeres) ? parsed.produits_suggeres : [];
+    parsed.questions_suivantes = Array.isArray(parsed.questions_suivantes) ? parsed.questions_suivantes : [];
+    parsed.etape_projet = parsed.etape_projet || "diagnostic";
+    parsed.sujet_principal = parsed.sujet_principal || "autre";
 
     return new Response(
       JSON.stringify({
