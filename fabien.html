@@ -300,6 +300,10 @@ button { font-family: inherit; cursor: pointer; }
 .fbn-msg {
   max-width: 88%;
   animation: fbn-msg-in 0.42s var(--ease-out);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
 }
 @keyframes fbn-msg-in {
   from { opacity: 0; transform: translateY(8px); }
@@ -1079,24 +1083,45 @@ function addFabienBubble(data) {
   }
 
   // Alertes "data.alertes" (format prod) — type: critique/valide/astuce/precaution
+  // Schéma attendu : {type: "...", texte: "..."} — autres clés tolérées en fallback
   if (data && Array.isArray(data.alertes) && data.alertes.length) {
     data.alertes.forEach(function(a) {
-      var typeMap = { 'critique': 'danger', 'valide': 'info', 'astuce': 'info', 'precaution': 'warn' };
+      // Tolérance : Claude peut renvoyer texte/text/message/content
+      var txt = '';
+      if (typeof a === 'string') {
+        txt = a;
+      } else if (a && typeof a === 'object') {
+        txt = a.texte || a.text || a.message || a.content || a.label || '';
+      }
+      // Skip si vide : ne pas afficher de filet vide avec juste un "!"
+      if (!txt || !txt.trim()) return;
+
+      var typeMap = { 'critique': 'danger', 'valide': 'info', 'astuce': 'info', 'precaution': 'warn', 'warning': 'warn', 'warn': 'warn', 'info': 'info', 'danger': 'danger', 'error': 'danger' };
       var iconMap = { 'danger': '✕', 'info': 'i', 'warn': '!' };
-      var t = typeMap[a.type] || 'warn';
+      var aType = (a && a.type) || 'warn';
+      var t = typeMap[aType] || 'warn';
       var alert = document.createElement('div');
       alert.className = 'fbn-alert ' + t;
-      alert.innerHTML = '<span class="fbn-alert-icon">' + iconMap[t] + '</span><span>' + escapeHtml(a.texte || '') + '</span>';
+      alert.innerHTML = '<span class="fbn-alert-icon">' + iconMap[t] + '</span><span>' + escapeHtml(txt) + '</span>';
       card.appendChild(alert);
     });
   }
 
-  // "tu_as_pense_a" : array string → mini liste alertes info
+  // "tu_as_pense_a" : array de strings → mini liste alertes info
   if (data && Array.isArray(data.tu_as_pense_a) && data.tu_as_pense_a.length) {
     data.tu_as_pense_a.forEach(function(t) {
+      // Tolérance : si Claude envoie un objet au lieu d'une string, extraire
+      var txt = '';
+      if (typeof t === 'string') {
+        txt = t;
+      } else if (t && typeof t === 'object') {
+        txt = t.texte || t.text || t.message || t.label || '';
+      }
+      if (!txt || !txt.trim()) return;
+
       var alert = document.createElement('div');
       alert.className = 'fbn-alert info';
-      alert.innerHTML = '<span class="fbn-alert-icon">→</span><span>' + escapeHtml(t) + '</span>';
+      alert.innerHTML = '<span class="fbn-alert-icon">→</span><span>' + escapeHtml(txt) + '</span>';
       card.appendChild(alert);
     });
   }
@@ -1106,16 +1131,23 @@ function addFabienBubble(data) {
   if (Array.isArray(prods) && prods.length) {
     var prodsBox = document.createElement('div');
     prodsBox.className = 'fbn-prods';
+    var prodsRendered = 0;
     prods.forEach(function(p) {
+      if (!p || typeof p !== 'object') return;
+
       // Normaliser : accepter schémas prod (slug/nom/categorie/role/prix/conseil_pro)
       // et schémas Odoo brut (id/name/default_code/list_price/description_sale)
+      var rawNom = p.nom || p.name || p.title || p.libelle || '';
+      // Skip les produits sans nom valide ou avec le placeholder "Produit"
+      if (!rawNom || !rawNom.trim() || rawNom.trim().toLowerCase() === 'produit') return;
+
       var pn = {
-        slug:        p.slug || p.default_code || ('id-' + (p.id || Math.random().toString(36).slice(2,8))),
-        nom:         p.nom || p.name || 'Produit',
-        categorie:   p.categorie || p.category || (p.default_code ? p.default_code : ''),
-        role:        p.role || p.description_sale || '',
+        slug:        p.slug || p.default_code || p.code || ('id-' + (p.id || Math.random().toString(36).slice(2,8))),
+        nom:         rawNom.trim(),
+        categorie:   p.categorie || p.category || p.x_category_tech || (p.default_code ? p.default_code : ''),
+        role:        p.role || p.description_sale || p.description || '',
         prix:        (typeof p.prix === 'number') ? p.prix : (typeof p.list_price === 'number' ? p.list_price : null),
-        conseil_pro: p.conseil_pro || '',
+        conseil_pro: p.conseil_pro || p.tip || '',
         quantite_suggeree: p.quantite_suggeree || 1,
         website_url: p.website_url || null
       };
@@ -1134,8 +1166,9 @@ function addFabienBubble(data) {
         toggleProduct(pn, btn);
       });
       prodsBox.appendChild(el);
+      prodsRendered++;
     });
-    card.appendChild(prodsBox);
+    if (prodsRendered > 0) card.appendChild(prodsBox);
   }
 
   // Chips de questions de relance
@@ -1143,10 +1176,16 @@ function addFabienBubble(data) {
     var chips = document.createElement('div');
     chips.className = 'fbn-chips';
     data.questions_suivantes.forEach(function(q) {
+      // Tolérance : si Claude envoie un objet au lieu d'une string
+      var qtxt = '';
+      if (typeof q === 'string') qtxt = q;
+      else if (q && typeof q === 'object') qtxt = q.texte || q.text || q.question || q.label || '';
+      if (!qtxt || !qtxt.trim()) return;
+
       var b = document.createElement('button');
       b.className = 'fbn-chip';
-      b.dataset.q = q;
-      b.textContent = q;
+      b.dataset.q = qtxt;
+      b.textContent = qtxt;
       chips.appendChild(b);
     });
     card.appendChild(chips);
