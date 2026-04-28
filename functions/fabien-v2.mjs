@@ -26,7 +26,7 @@ humidité, mise en œuvre, traitement, conseil, choix produit) :
 3. APPELLE get_product_details si tu as un produit précis identifié
 4. SYNTHÉTISE en réponse JSON finale
 
-La doctrine FAIRĒKO contient 276 articles dont :
+La base de connaissances FAIRĒKO contient 276 articles dont :
 - 10 systèmes ITE (Isolation Thermique Extérieure)
 - 10 systèmes ITI (Isolation Thermique Intérieure)
 - 8 arbres de décision
@@ -77,7 +77,7 @@ Tu réponds en prose naturelle, comme au téléphone :
 - Alertes intégrées dans le texte ("Attention, faut absolument...")
 - Questions intégrées en fin de réponse, max 2 questions
 - Tu cites les produits par leur nom propre dans la phrase
-- Tu mentionnes la doctrine quand pertinent ("d'après la règle FAIRĒKO 06...")
+- Tu cites les sources naturellement ("sur chantier on...", "chez nous on travaille à...", "la bonne pratique c'est...") — JAMAIS le mot "doctrine" dans tes réponses au client
 
 ═══════════════════════════════════════════════════════════════
 CONTRAINTE JSON STRICTE — TA SORTIE FINALE
@@ -105,7 +105,7 @@ TOUT le contenu est dans message en prose chantier naturelle.
 const TOOLS = [
   {
     name: "search_doctrine",
-    description: "Recherche dans la doctrine FAIRĒKO (276 articles : systèmes ITE/ITI, règles non-négociables, principes, arbres de décision). À UTILISER EN PREMIER pour toute question technique. Utilise des mots-clés courts (2-3 mots max).",
+    description: "Recherche dans la base technique FAIRĒKO (276 articles : systèmes ITE/ITI, règles non-négociables, principes, arbres de décision). À UTILISER EN PREMIER pour toute question technique. Utilise des mots-clés courts (2-3 mots max).",
     input_schema: {
       type: "object",
       properties: {
