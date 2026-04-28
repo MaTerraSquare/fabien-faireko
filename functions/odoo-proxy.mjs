@@ -1,3 +1,7 @@
+// =============================================================================
+// FAIRĒKO — ODOO PROXY V4 (PDF + SYSTEM + PROPRE)
+// =============================================================================
+
 const FILTRE_IA = [
   ["x_owner_entity", "=", "FAIREKO"],
   ["x_visible_ia", "=", true],
@@ -11,6 +15,7 @@ const FILTRE_IA = [
 const CHAMPS_DETAIL = [
   "id",
   "name",
+  "description_sale",
   "x_category_tech",
   "x_system_role",
   "x_studio_conductivit_wmk",
@@ -18,6 +23,7 @@ const CHAMPS_DETAIL = [
   "x_mu_max",
   "x_liant_type",
   "x_pdf_text",
+  "x_ia_tags",
   "list_price"
 ];
 
@@ -26,6 +32,8 @@ const CHAMPS_DETAIL = [
 // ----------------------
 function cors(res) {
   res.headers.set("Access-Control-Allow-Origin", "*");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  res.headers.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   return res;
 }
 
@@ -57,33 +65,49 @@ async function odoo(model, method, args, kwargs = {}) {
   });
 
   const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
   return data.result;
 }
 
 // ----------------------
-// 🔎 PRODUITS
+// 🔎 PRODUITS (SMART SEARCH)
 // ----------------------
 async function search_products(input) {
   const domain = [...FILTRE_IA];
 
   if (input.query) {
-    domain.push("|", "|",
-      ["name", "ilike", input.query],
-      ["default_code", "ilike", input.query],
-      ["x_pdf_text", "ilike", input.query] // 🔥 recherche dans PDF
+    const q = input.query;
+
+    domain.push(
+      "|","|","|","|",
+      ["name", "ilike", q],
+      ["default_code", "ilike", q],
+      ["description_sale", "ilike", q],
+      ["x_pdf_text", "ilike", q], // 🔥 PDF
+      ["x_ia_tags", "ilike", q]
     );
   }
 
   const res = await odoo("product.template", "search_read", [domain], {
-    fields: ["id", "name", "x_category_tech"],
-    limit: 5
+    fields: [
+      "id",
+      "name",
+      "x_category_tech",
+      "x_studio_conductivit_wmk",
+      "list_price"
+    ],
+    limit: 6,
+    order: "x_niveau_confiance desc"
   });
 
-  return { products: res };
+  return {
+    count: res.length,
+    products: res
+  };
 }
 
 // ----------------------
-// 📄 PRODUIT + PDF
+// 📄 PRODUIT + PDF COMPLET
 // ----------------------
 async function get_product_details(input) {
   const res = await odoo("product.template", "search_read", [[
@@ -100,12 +124,13 @@ async function get_product_details(input) {
 
   return {
     produit: p,
-    fiche_pdf: p.x_pdf_text || null
+    fiche_pdf: p.x_pdf_text || "",
+    resume: (p.x_pdf_text || "").slice(0, 1500) // ⚡ optimisation tokens
   };
 }
 
 // ----------------------
-// 📚 KNOWLEDGE
+// 📚 KNOWLEDGE CLEAN
 // ----------------------
 async function search_doctrine(input) {
   const res = await odoo("knowledge.article", "search_read", [[
@@ -119,20 +144,21 @@ async function search_doctrine(input) {
 
   return res.map(a => ({
     titre: a.name,
-    texte: a.body.replace(/<[^>]+>/g, "").slice(0, 1000)
+    texte: a.body
+      .replace(/<[^>]+>/g, "")
+      .replace(/\s+/g, " ")
+      .slice(0, 1200)
   }));
 }
 
 // ----------------------
-// 🧠 SYSTÈMES (NOUVEAU)
+// 🧠 SYSTEMES (ULTRA IMPORTANT)
 // ----------------------
 async function search_systems(input) {
-  const domain = [
+  const systems = await odoo("x_generic_system", "search_read", [[
     ["x_owner_entity", "=", "FAIREKO"],
     ["x_visible_ia", "=", true]
-  ];
-
-  const systems = await odoo("x_generic_system", "search_read", [domain], {
+  ]], {
     fields: ["id", "name", "x_typology"],
     limit: 5
   });
@@ -150,7 +176,7 @@ async function search_systems(input) {
     for (let slot of slots) {
       const products = await odoo("product.template", "read", [
         slot.product_options_ids,
-        ["name", "x_category_tech"]
+        ["id","name","x_category_tech"]
       ]);
 
       s.slots.push({
@@ -193,9 +219,14 @@ export default async (req) => {
     }
 
     const result = await TOOLS[tool](input || {});
-    return json({ tool, result });
+
+    return json({
+      tool,
+      result
+    });
 
   } catch (e) {
+    console.error(e);
     return json({ error: e.message }, 500);
   }
 };
