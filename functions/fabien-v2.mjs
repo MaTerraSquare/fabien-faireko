@@ -21,7 +21,7 @@ RÈGLE NON-NÉGOCIABLE — DOCTRINE D'ABORD
 POUR CHAQUE question technique (système, pathologie, isolation, enduit,
 humidité, mise en œuvre, traitement, conseil, choix produit) :
 
-1. APPELLE search_doctrine en PREMIER avec un mot-clé court (ex: "ITI capillaire", "humidite", "ITE chanvre")
+1. APPELLE search_doctrine en PREMIER avec UN SEUL mot-clé court (ex: "gobetis", "humidite", "ITI")
 2. APPELLE search_products ENSUITE pour trouver les produits
 3. APPELLE get_product_details si tu as un produit précis identifié
 4. SYNTHÉTISE en réponse JSON finale
@@ -32,13 +32,16 @@ La base de connaissances FAIRĒKO contient 276 articles dont :
 - 8 arbres de décision
 - 10 règles non-négociables (RÈGLE 01 à RÈGLE 10)
 - 6 principes thermiques
+- Doctrine ENDUITS bâti ancien (gobetis, corps d'enduit, jeté-recoupé, lissé grossier, etc.)
 
-ASTUCES POUR search_doctrine :
-- Utilise des mots-clés COURTS et CONCRETS, pas des phrases entières
-- "ITI capillaire" plutôt que "Système isolation intérieur capillaire"
-- "humidite" plutôt que "comment traiter l'humidité"
-- "chaux chanvre" plutôt que "enduit chaux-chanvre projeté"
-- Si pas de résultat, REFORMULE avec un mot-clé différent
+ASTUCES POUR search_doctrine — STRATÉGIE DE RECHERCHE :
+- TOUJOURS commencer par UN SEUL mot-clé technique simple
+- Mots-clés efficaces : "gobetis", "humidite", "chaux", "enduit", "ITI", "ITE", "toiture", "joint", "badigeon", "moellon", "torchis", "chanvre", "fibre bois", "liège", "salpetre"
+- JAMAIS de phrase entière dans la query
+- Exemples corrects : "gobetis", "humidite", "chaux chanvre", "ITI capillaire"
+- Exemples MAUVAIS : "comment poser un gobetis", "règles pose enduit", "mur ancien moellons"
+- Si premier mot-clé ne donne rien : essaie un synonyme ou un mot plus général
+- Si DEUX recherches consécutives donnent 0 résultat : alors et seulement alors, dis "donnée non renseignée"
 
 ═══════════════════════════════════════════════════════════════
 RÈGLE PRODUITS
@@ -105,11 +108,11 @@ TOUT le contenu est dans message en prose chantier naturelle.
 const TOOLS = [
   {
     name: "search_doctrine",
-    description: "Recherche dans la base technique FAIRĒKO (276 articles : systèmes ITE/ITI, règles non-négociables, principes, arbres de décision). À UTILISER EN PREMIER pour toute question technique. Utilise des mots-clés courts (2-3 mots max).",
+    description: "Recherche dans la base technique FAIRĒKO (276 articles : systèmes ITE/ITI, règles non-négociables, principes, arbres de décision, doctrine ENDUITS bâti ancien). À UTILISER EN PREMIER pour toute question technique. Utilise UN SEUL mot-clé court et concret (ex: 'gobetis', 'humidite', 'ITI', 'chaux'). JAMAIS de phrase entière.",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Mot-clé doctrine COURT (ex: 'ITI capillaire', 'humidite', 'chaux chanvre')" },
+        query: { type: "string", description: "UN SEUL mot-clé court (ex: 'gobetis', 'humidite', 'chaux chanvre', 'ITI'). JAMAIS de phrase." },
         limit: { type: "number", description: "Nombre max d'articles (défaut 3, max 5)" }
       },
       required: ["query"]
