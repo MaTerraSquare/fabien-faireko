@@ -285,11 +285,16 @@ async function toolSearchProducts(input) {
   }
 
   return {
-    count: produits.length,
-    products: produits,
-    ...(hint_existe_hors_ia && { _hint: hint_existe_hors_ia })
-  };
-}
+  count: produits.length,
+  products: produits.map(p => ({
+    id: p.id,
+    name: p.name,
+    categorie: p.x_category_tech,
+    lambda: p.x_studio_conductivit_wmk,
+    feu: p.x_reaction_feu,
+    prix: p.list_price
+  }))
+};
 
 // -----------------------------------------------------------------------------
 // Tool 2 : get_product_details
