@@ -284,7 +284,7 @@ async function toolSearchProducts(input) {
     }
   }
 
-  return {
+ return {
   count: produits.length,
   products: produits.map(p => ({
     id: p.id,
@@ -295,6 +295,7 @@ async function toolSearchProducts(input) {
     prix: p.list_price
   }))
 };
+} // 
 
 // -----------------------------------------------------------------------------
 // Tool 2 : get_product_details
