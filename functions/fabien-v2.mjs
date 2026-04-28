@@ -15,34 +15,30 @@ Tu parles français. Tu tutoies. Ton chantier : direct, concret, naturel.
 Tu écris comme un chef de chantier qui parle au téléphone à un collègue.
 
 ═══════════════════════════════════════════════════════════════
-RÈGLE NON-NÉGOCIABLE — DOCTRINE D'ABORD (ABSOLUE)
+RÈGLE NON-NÉGOCIABLE — DOCTRINE D'ABORD
 ═══════════════════════════════════════════════════════════════
 
 POUR CHAQUE question technique (système, pathologie, isolation, enduit,
-humidité, mise en œuvre, traitement, conseil chantier, choix de produit) :
+humidité, mise en œuvre, traitement, conseil, choix produit) :
 
-ÉTAPE 1 OBLIGATOIRE :
-  → search_doctrine(query) — chercher la doctrine FAIRĒKO
+1. APPELLE search_doctrine en PREMIER avec un mot-clé court (ex: "ITI capillaire", "humidite", "ITE chanvre")
+2. APPELLE search_products ENSUITE pour trouver les produits
+3. APPELLE get_product_details si tu as un produit précis identifié
+4. SYNTHÉTISE en réponse JSON finale
 
-ÉTAPE 2 (recommandé) :
-  → search_doctrine(query2) — chercher d'autres aspects pertinents
+La doctrine FAIRĒKO contient 276 articles dont :
+- 10 systèmes ITE (Isolation Thermique Extérieure)
+- 10 systèmes ITI (Isolation Thermique Intérieure)
+- 8 arbres de décision
+- 10 règles non-négociables (RÈGLE 01 à RÈGLE 10)
+- 6 principes thermiques
 
-ÉTAPE 3 (après doctrine seulement) :
-  → search_products(query) — chercher produits
-
-ÉTAPE 4 (si produit pertinent identifié) :
-  → get_product_details(id) — obtenir spécifications complètes
-
-JAMAIS commencer par search_products sans avoir consulté la doctrine.
-
-La doctrine FAIRĒKO contient :
-- 10 systèmes ITE complets (Isolation Thermique Extérieure)
-- 10 systèmes ITI complets (Isolation Thermique Intérieure)
-- 8 arbres de décision (par où commencer, choix matériaux)
-- 10 règles non-négociables (dureté décroissante, étanchéité air, etc.)
-- 6 principes thermiques fondamentaux (déphasage, inertie, ventilation)
-
-Tu ne peux PAS conseiller correctement sans avoir lu la doctrine.
+ASTUCES POUR search_doctrine :
+- Utilise des mots-clés COURTS et CONCRETS, pas des phrases entières
+- "ITI capillaire" plutôt que "Système isolation intérieur capillaire"
+- "humidite" plutôt que "comment traiter l'humidité"
+- "chaux chanvre" plutôt que "enduit chaux-chanvre projeté"
+- Si pas de résultat, REFORMULE avec un mot-clé différent
 
 ═══════════════════════════════════════════════════════════════
 RÈGLE PRODUITS
@@ -50,7 +46,7 @@ RÈGLE PRODUITS
 
 - Nom de produit cité par l'utilisateur → search_products obligatoire
 - Donnée technique précise demandée → get_product_details obligatoire
-- Sinon → tu n'inventes RIEN, tu dis "donnée non renseignée"
+- Sinon → tu n'inventes RIEN
 
 ═══════════════════════════════════════════════════════════════
 SOURCE TECHNIQUE (PRIORITÉ ABSOLUE)
@@ -68,7 +64,7 @@ INTERDIT :
 - Inventer λ, μ, classe feu, densité, ou toute valeur technique
 - Extrapoler depuis un produit similaire
 
-SI une donnée n'est pas dans les sources ci-dessus :
+SI une donnée n'est pas dans les sources :
 → "donnée non renseignée dans la fiche FAIRĒKO"
 
 ═══════════════════════════════════════════════════════════════
@@ -81,27 +77,16 @@ Tu réponds en prose naturelle, comme au téléphone :
 - Alertes intégrées dans le texte ("Attention, faut absolument...")
 - Questions intégrées en fin de réponse, max 2 questions
 - Tu cites les produits par leur nom propre dans la phrase
-- Tu mentionnes la doctrine quand pertinent ("d'après la règle FAIRĒKO sur...")
-
-EXEMPLE CHANTIER (BIEN) :
-"Pour ton ITE chaux sur bâti ancien, le combo c'est ADHERECAL en collage et
-sous-enduit armé, puis ESTUCAL en finition. Attention quand même, faut
-absolument vérifier l'humidité du mur avant — si t'as des remontées
-capillaires, on traite ça d'abord avec HUMICAL. Selon la règle FAIRĒKO 06,
-on n'isole jamais un mur humide sans traiter la cause. Tu sais quel type
-d'isolant tu vises (fibre de bois, liège, chanvre) ?"
-
-EXEMPLE FORMULAIRE (À ÉVITER) :
-"→ ADHERECAL pour collage
-→ ESTUCAL en finition
-! Attention humidité
-? Quel isolant ?"
+- Tu mentionnes la doctrine quand pertinent ("d'après la règle FAIRĒKO 06...")
 
 ═══════════════════════════════════════════════════════════════
-CONTRAINTE JSON — SORTIE
+CONTRAINTE JSON STRICTE — TA SORTIE FINALE
 ═══════════════════════════════════════════════════════════════
 
-Tu réponds UNIQUEMENT en JSON valide, format simplifié :
+Quand tu as fini d'utiliser les outils et que tu produis ta réponse finale,
+elle DOIT être UNIQUEMENT un JSON valide, sans texte avant ni après.
+
+Format obligatoire :
 
 {
   "message": "Ta réponse complète en prose naturelle. TOUT est ici : conseil, alertes intégrées dans le texte, questions naturelles à la fin. Pas de listes structurées, pas de bullets.",
@@ -113,18 +98,30 @@ Tu réponds UNIQUEMENT en JSON valide, format simplifié :
   "sujet_principal": "humidite|isolation|enduit|toiture|sol|autre"
 }
 
-Pas de tu_as_pense_a, pas d'alertes structurées, pas de questions_suivantes.
-TOUT est intégré naturellement dans message.
+Pas de markdown autour du JSON. Pas de \`\`\`json. Juste le JSON pur.
+TOUT le contenu est dans message en prose chantier naturelle.
 `;
 
 const TOOLS = [
   {
-    name: "search_products",
-    description: "Recherche dans le catalogue FAIRĒKO. Utilise pour trouver des produits par nom, fonction, ou concept (ex: 'enduit chaux', 'isolant capillaire', 'frein vapeur').",
+    name: "search_doctrine",
+    description: "Recherche dans la doctrine FAIRĒKO (276 articles : systèmes ITE/ITI, règles non-négociables, principes, arbres de décision). À UTILISER EN PREMIER pour toute question technique. Utilise des mots-clés courts (2-3 mots max).",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string", description: "Mot-clé ou concept de recherche" },
+        query: { type: "string", description: "Mot-clé doctrine COURT (ex: 'ITI capillaire', 'humidite', 'chaux chanvre')" },
+        limit: { type: "number", description: "Nombre max d'articles (défaut 3, max 5)" }
+      },
+      required: ["query"]
+    }
+  },
+  {
+    name: "search_products",
+    description: "Recherche dans le catalogue FAIRĒKO. À utiliser APRÈS search_doctrine pour trouver les produits qui correspondent au système identifié.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Mot-clé produit (nom, fonction, ou concept)" },
         category: { type: "string", description: "Catégorie technique optionnelle (ex: 'enduit_base')" },
         limit: { type: "number", description: "Nombre max de résultats (défaut 5, max 10)" }
       }
@@ -132,7 +129,7 @@ const TOOLS = [
   },
   {
     name: "get_product_details",
-    description: "Fiche technique complète d'un produit (toutes spécifications + résumé PDF). Utilise après search_products pour obtenir les détails précis d'un produit identifié.",
+    description: "Fiche technique complète d'un produit (toutes spécifications + résumé PDF). À utiliser après search_products quand tu as identifié un produit précis.",
     input_schema: {
       type: "object",
       properties: {
@@ -145,23 +142,11 @@ const TOOLS = [
     name: "list_categories",
     description: "Liste les 21 catégories techniques FAIRĒKO. Utile pour orienter une recherche par catégorie.",
     input_schema: { type: "object", properties: {} }
-  },
-  {
-    name: "search_doctrine",
-    description: "Recherche dans la doctrine FAIRĒKO (systèmes ITE/ITI, règles non-négociables, principes, arbres de décision). À UTILISER EN PREMIER pour toute question technique.",
-    input_schema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Mot-clé doctrine (ex: 'chaux-chanvre', 'humidité', 'ITI capillaire')" },
-        limit: { type: "number", description: "Nombre max d'articles (défaut 3, max 5)" }
-      },
-      required: ["query"]
-    }
   }
 ];
 
 
-// 🔥 PARSER ROBUSTE (anti bug JSON)
+// 🔥 PARSER ROBUSTE
 function extractJSON(raw) {
   if (!raw || typeof raw !== "string") return null;
 
@@ -217,7 +202,7 @@ async function callTool(toolName, input, baseUrl) {
 }
 
 
-// 🚀 HANDLER NETLIFY
+// 🚀 HANDLER NETLIFY V3.1
 export default async function handler(req) {
 
   if (req.method === "OPTIONS") {
@@ -235,7 +220,9 @@ export default async function handler(req) {
     let iterations = 0;
     const MAX_ITERATIONS = 6;
     let data;
+    const trace = [];
 
+    // BOUCLE PRINCIPALE
     while (true) {
 
       const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
@@ -247,7 +234,7 @@ export default async function handler(req) {
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 1500,
+          max_tokens: 2000,
           temperature: 0.2,
           system: SYSTEM,
           messages: conversation,
@@ -257,27 +244,40 @@ export default async function handler(req) {
 
       data = await apiRes.json();
 
-      if (!data || !data.content) break;
+      if (!data || !data.content) {
+        trace.push({ iter: iterations, error: "no_content", raw: data });
+        break;
+      }
 
-      if (data.stop_reason !== "tool_use" || iterations >= MAX_ITERATIONS) break;
+      // Si stop_reason est tool_use, on continue avec les outils
+      if (data.stop_reason === "tool_use" && iterations < MAX_ITERATIONS) {
+        iterations++;
+        const toolCalls = data.content.filter(c => c.type === "tool_use");
 
-      iterations++;
+        trace.push({
+          iter: iterations,
+          tools_called: toolCalls.map(t => ({ name: t.name, input: t.input }))
+        });
 
-      const toolCalls = data.content.filter(c => c.type === "tool_use");
+        conversation.push({ role: "assistant", content: data.content });
 
-      conversation.push({ role: "assistant", content: data.content });
+        const results = await Promise.all(
+          toolCalls.map(async (t) => ({
+            type: "tool_result",
+            tool_use_id: t.id,
+            content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
+          }))
+        );
 
-      const results = await Promise.all(
-        toolCalls.map(async (t) => ({
-          type: "tool_result",
-          tool_use_id: t.id,
-          content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
-        }))
-      );
+        conversation.push({ role: "user", content: results });
+        continue;
+      }
 
-      conversation.push({ role: "user", content: results });
+      // Sinon on sort de la boucle outils
+      break;
     }
 
+    // EXTRACTION DU TEXTE FINAL
     const text = (data?.content || [])
       .filter(c => c.type === "text")
       .map(c => c.text)
@@ -285,9 +285,56 @@ export default async function handler(req) {
 
     let parsed = extractJSON(text);
 
+    // RETRY si pas de JSON valide
+    if (!parsed && text && text.length > 0) {
+      trace.push({ iter: "retry", reason: "no_valid_json", text_preview: text.substring(0, 200) });
+
+      // On demande explicitement au LLM de reformatter sa réponse en JSON
+      conversation.push({ role: "assistant", content: data.content });
+      conversation.push({
+        role: "user",
+        content: "Reformule ta réponse précédente en JSON strict avec les champs : message, posture, produits_suggeres, etape_projet, sujet_principal. Sans aucun texte avant ou après. Juste le JSON pur."
+      });
+
+      try {
+        const retryRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01"
+          },
+          body: JSON.stringify({
+            model: "claude-haiku-4-5-20251001",
+            max_tokens: 2000,
+            temperature: 0.1,
+            system: SYSTEM,
+            messages: conversation
+          })
+        });
+
+        const retryData = await retryRes.json();
+        const retryText = (retryData?.content || [])
+          .filter(c => c.type === "text")
+          .map(c => c.text)
+          .join("\n");
+
+        parsed = extractJSON(retryText);
+        trace.push({ iter: "retry_done", parsed_ok: !!parsed });
+      } catch (e) {
+        trace.push({ iter: "retry_failed", error: e.message });
+      }
+    }
+
+    // FALLBACK si toujours pas de JSON
     if (!parsed) {
+      // On essaie au moins de récupérer le texte brut comme message
+      const fallback_message = text && text.length > 50
+        ? text.replace(/```json/gi, "").replace(/```/g, "").trim()
+        : "Je n'ai pas réussi à formuler une réponse exploitable. Reformule ta question avec un peu plus de contexte.";
+
       parsed = {
-        message: "Je n'ai pas réussi à formuler une réponse exploitable. Reformule ta question avec un peu plus de contexte sur ton chantier.",
+        message: fallback_message,
         posture: "diagnostic",
         produits_suggeres: [],
         etape_projet: "diagnostic",
@@ -299,7 +346,10 @@ export default async function handler(req) {
       JSON.stringify({
         success: true,
         ...parsed,
-        _meta: { tool_iterations: iterations }
+        _meta: {
+          tool_iterations: iterations,
+          trace: trace
+        }
       }),
       { status: 200, headers: HEADERS }
     );
