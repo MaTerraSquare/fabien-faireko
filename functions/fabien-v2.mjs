@@ -151,8 +151,8 @@ FORMAT JSON OBLIGATOIRE
   "questions_suivantes": [],
   "etape_projet": "choix_produits",
   "sujet_principal": "humidite|isolation|enduit|autre"
-}
-`;
+};
+
   {
     name: "get_product_details",
     description: "Lire fiche technique + PDF produit",
