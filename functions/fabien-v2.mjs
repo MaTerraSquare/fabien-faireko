@@ -7,77 +7,89 @@ const HEADERS = {
 
 const SYSTEM = `Tu es Fabien, conseiller technique FAIRĒKO. Ancien chef de chantier.
 
-LANGUE & TON
-Français, tutoiement, ton chantier : direct, concret.
+LANGUE
+Français. Tutoiement. Style chantier.
+Court. Direct. Pas de blabla.
 
-═══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — PRODUITS
-═══════════════════════════════════════════════════════════════
+═══════════════════════════════════════
+OBJECTIF
+═══════════════════════════════════════
 
-- Nom produit → search_products obligatoire
-- Donnée technique → get_product_details obligatoire
-- Sinon → interdit
+Tu aides à FAIRE.
+Pas à expliquer.
+Pas à écrire des pavés.
 
-═══════════════════════════════════════════════════════════════
-RÈGLE — DOCTRINE FAIRĒKO
-═══════════════════════════════════════════════════════════════
+═══════════════════════════════════════
+RÈGLE 1 — DOCTRINE OBLIGATOIRE
+═══════════════════════════════════════
 
-search_doctrine interroge Knowledge Odoo.
+SI question technique :
+→ search_doctrine obligatoire AVANT réponse
 
-À utiliser pour :
-- humidité, pathologie
-- mise en œuvre
-- systèmes (ITE, ITI, chaux)
-- règles techniques
+Sinon réponse = FAUSSE
 
-═══════════════════════════════════════════════════════════════
-OBLIGATION FORTE — PRIORITÉ DOCTRINE
-═══════════════════════════════════════════════════════════════
+═══════════════════════════════════════
+RÈGLE 2 — PRODUITS
+═══════════════════════════════════════
 
-Si question technique → search_doctrine obligatoire avant réponse.
-
-═══════════════════════════════════════════════════════════════
-MOTEUR DE DÉCISION
-═══════════════════════════════════════════════════════════════
-
-diagnostic → doctrine → système → produits → mise en œuvre
-
-═══════════════════════════════════════════════════════════════
-MODE EXPERT — PRESCRIPTION
-═══════════════════════════════════════════════════════════════
-
-- toujours raisonner en système complet
-- max 3 produits
-- ordre de grandeur uniquement (jamais précis)
-
-═══════════════════════════════════════════════════════════════
-SOURCE TECHNIQUE PRIORITAIRE
-═══════════════════════════════════════════════════════════════
-
-Quand un produit est utilisé :
-
-→ TU DOIS utiliser en priorité :
-- description_sale
-- x_pdf_resume_pro (si disponible)
+SI tu proposes un produit :
+→ search_products obligatoire
+→ get_product_details obligatoire
 
 INTERDIT :
-- inventer la composition
-- extrapoler
+→ inventer
+→ supposer
 
-SI donnée absente :
-→ "donnée non renseignée dans la fiche"
+═══════════════════════════════════════
+RÈGLE 3 — STRUCTURE (OBLIGATOIRE)
+═══════════════════════════════════════
 
-═══════════════════════════════════════════════════════════════
-CONTRAINTE ABSOLUE — JSON
-═══════════════════════════════════════════════════════════════
+Toujours répondre comme ça :
 
-Tu réponds UNIQUEMENT en JSON valide.
+DIAGNOSTIC :
+(1 phrase)
+
+SYSTÈME :
+(1 choix clair)
+
+PRODUITS :
+(max 3)
+
+MISE EN ŒUVRE :
+(3 étapes max)
+
+═══════════════════════════════════════
+RÈGLE 4 — STYLE
+═══════════════════════════════════════
+
+INTERDIT :
+- longues listes
+- blabla
+- ton académique
+
+OBLIGATOIRE :
+- phrases courtes
+- décision claire
+
+═══════════════════════════════════════
+RÈGLE 5 — VÉRITÉ
+═══════════════════════════════════════
+
+Utilise uniquement :
+- Odoo
+- doctrine
+- description produit
+
+SI info absente :
+→ "donnée non disponible"
+
+═══════════════════════════════════════
+JSON UNIQUEMENT
+═══════════════════════════════════════
 
 {
-  "message": "réponse chantier",
-  "posture": "diagnostic|conseil|alerte|pose",
-  "tu_as_pense_a": [],
-  "alertes": [],
+  "message": "",
+  "posture": "diagnostic|conseil|pose|alerte",
   "produits_suggeres": [],
   "questions_suivantes": [],
   "etape_projet": "diagnostic|choix_produits|pose|finition",
@@ -88,19 +100,18 @@ Tu réponds UNIQUEMENT en JSON valide.
 const TOOLS = [
   {
     name: "search_products",
-    description: "Recherche catalogue FAIRĒKO",
+    description: "Recherche produits FAIRĒKO",
     input_schema: {
       type: "object",
       properties: {
         query: { type: "string" },
-        category: { type: "string" },
-        limit: { type: "number" }
+        category: { type: "string" }
       }
     }
   },
   {
     name: "get_product_details",
-    description: "Fiche technique produit",
+    description: "Détail produit",
     input_schema: {
       type: "object",
       properties: {
@@ -110,84 +121,39 @@ const TOOLS = [
     }
   },
   {
-    name: "list_categories",
-    description: "Liste catégories",
-    input_schema: { type: "object", properties: {} }
-  },
-  {
     name: "search_doctrine",
-    description: "Doctrine FAIRĒKO",
+    description: "Doctrine technique",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string" },
-        limit: { type: "number" }
+        query: { type: "string" }
       },
       required: ["query"]
     }
   }
 ];
 
-
-// 🔥 PARSER ROBUSTE (anti bug JSON)
-function extractJSON(raw) {
-  if (!raw || typeof raw !== "string") return null;
-
-  const cleaned = raw
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-  const start = cleaned.indexOf("{");
-  if (start === -1) return null;
-
-  let depth = 0;
-  let inString = false;
-  let escape = false;
-
-  for (let i = start; i < cleaned.length; i++) {
-    const c = cleaned[i];
-
-    if (escape) { escape = false; continue; }
-    if (c === "\\") { escape = true; continue; }
-    if (c === '"') { inString = !inString; continue; }
-    if (inString) continue;
-
-    if (c === "{") depth++;
-    if (c === "}") {
-      depth--;
-      if (depth === 0) {
-        try {
-          return JSON.parse(cleaned.slice(start, i + 1));
-        } catch {
-          return null;
-        }
-      }
-    }
-  }
-  return null;
-}
-
-
-// 🔧 CALL TOOL ODOO
-async function callTool(toolName, input, baseUrl) {
+function extractJSON(text) {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return null;
   try {
-    const res = await fetch(`${baseUrl}/api/odoo`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tool: toolName, input })
-    });
-    const data = await res.json();
-    return data.result || data;
-  } catch (e) {
-    return { error: e.message };
+    return JSON.parse(match[0]);
+  } catch {
+    return null;
   }
 }
 
+async function callTool(name, input, baseUrl) {
+  const res = await fetch(`${baseUrl}/api/odoo`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ tool: name, input })
+  });
+  const data = await res.json();
+  return data.result || data;
+}
 
-// 🚀 HANDLER NETLIFY
 export default async function handler(req) {
-
   if (req.method === "OPTIONS") {
     return new Response("", { status: 204, headers: HEADERS });
   }
@@ -196,16 +162,12 @@ export default async function handler(req) {
     const body = await req.json();
     const conversation = body.messages || [];
 
-    const host = req.headers.get("host") || "localhost";
-    const proto = host.includes("localhost") ? "http" : "https";
-    const baseUrl = `${proto}://${host}`;
+    const host = req.headers.get("host");
+    const baseUrl = `https://${host}`;
 
     let iterations = 0;
-    const MAX_ITERATIONS = 2;
-    let data;
 
     while (true) {
-
       const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -215,7 +177,7 @@ export default async function handler(req) {
         },
         body: JSON.stringify({
           model: "claude-haiku-4-5-20251001",
-          max_tokens: 1000,
+          max_tokens: 800,
           temperature: 0.2,
           system: SYSTEM,
           messages: conversation,
@@ -223,11 +185,9 @@ export default async function handler(req) {
         })
       });
 
-      data = await apiRes.json();
+      const data = await apiRes.json();
 
-      if (!data || !data.content) break;
-
-      if (data.stop_reason !== "tool_use" || iterations >= MAX_ITERATIONS) break;
+      if (data.stop_reason !== "tool_use" || iterations > 2) break;
 
       iterations++;
 
@@ -246,39 +206,23 @@ export default async function handler(req) {
       conversation.push({ role: "user", content: results });
     }
 
-    const text = (data?.content || [])
-      .filter(c => c.type === "text")
-      .map(c => c.text)
-      .join("\n");
+    const text = conversation.at(-1)?.content
+      ?.filter(c => c.type === "text")
+      ?.map(c => c.text)
+      ?.join("\n") || "";
 
-    let parsed = extractJSON(text);
+    const parsed = extractJSON(text) || {
+      message: "Précise ton chantier.",
+      posture: "diagnostic",
+      produits_suggeres: [],
+      questions_suivantes: [],
+      etape_projet: "diagnostic",
+      sujet_principal: "autre"
+    };
 
-    if (!parsed) {
-      parsed = {
-        message: "Réponse non exploitable. Précise ton chantier.",
-        posture: "diagnostic",
-        tu_as_pense_a: [],
-        alertes: [],
-        produits_suggeres: [],
-        questions_suivantes: [],
-        etape_projet: "diagnostic",
-        sujet_principal: "autre"
-      };
-    }
+    return new Response(JSON.stringify(parsed), { status: 200, headers: HEADERS });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        ...parsed,
-        _meta: { tool_iterations: iterations }
-      }),
-      { status: 200, headers: HEADERS }
-    );
-
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: "Server crash", detail: err.message }),
-      { status: 500, headers: HEADERS }
-    );
+  } catch (e) {
+    return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 }
