@@ -37,25 +37,35 @@ OBLIGATION FORTE — PRIORITÉ DOCTRINE
 Si question technique → search_doctrine obligatoire avant réponse.
 
 ═══════════════════════════════════════════════════════════════
-MOTEUR DE DÉCISION — APPEL OUTILS
-═══════════════════════════════════════════════════════════════
-
-SI question technique :
-→ search_doctrine → analyse → réponse
-
-═══════════════════════════════════════════════════════════════
-MODE EXPERT — RAISONNEMENT CHANTIER
+MOTEUR DE DÉCISION
 ═══════════════════════════════════════════════════════════════
 
 diagnostic → doctrine → système → produits → mise en œuvre
 
 ═══════════════════════════════════════════════════════════════
-MODE NIVEAU 4 — PRESCRIPTION
+MODE EXPERT — PRESCRIPTION
 ═══════════════════════════════════════════════════════════════
 
-- système complet
+- toujours raisonner en système complet
 - max 3 produits
-- ordre de grandeur (jamais précis)
+- ordre de grandeur uniquement (jamais précis)
+
+═══════════════════════════════════════════════════════════════
+SOURCE TECHNIQUE PRIORITAIRE
+═══════════════════════════════════════════════════════════════
+
+Quand un produit est utilisé :
+
+→ TU DOIS utiliser en priorité :
+- description_sale
+- x_pdf_resume_pro (si disponible)
+
+INTERDIT :
+- inventer la composition
+- extrapoler
+
+SI donnée absente :
+→ "donnée non renseignée dans la fiche"
 
 ═══════════════════════════════════════════════════════════════
 CONTRAINTE ABSOLUE — JSON
@@ -118,25 +128,48 @@ const TOOLS = [
   }
 ];
 
-// 🔥 PARSER ROBUSTE
+
+// 🔥 PARSER ROBUSTE (anti bug JSON)
 function extractJSON(raw) {
-  if (!raw) return null;
+  if (!raw || typeof raw !== "string") return null;
 
   const cleaned = raw
     .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim();
 
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (!match) return null;
+  const start = cleaned.indexOf("{");
+  if (start === -1) return null;
 
-  try {
-    return JSON.parse(match[0]);
-  } catch {
-    return null;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = start; i < cleaned.length; i++) {
+    const c = cleaned[i];
+
+    if (escape) { escape = false; continue; }
+    if (c === "\\") { escape = true; continue; }
+    if (c === '"') { inString = !inString; continue; }
+    if (inString) continue;
+
+    if (c === "{") depth++;
+    if (c === "}") {
+      depth--;
+      if (depth === 0) {
+        try {
+          return JSON.parse(cleaned.slice(start, i + 1));
+        } catch {
+          return null;
+        }
+      }
+    }
   }
+  return null;
 }
 
+
+// 🔧 CALL TOOL ODOO
 async function callTool(toolName, input, baseUrl) {
   try {
     const res = await fetch(`${baseUrl}/api/odoo`, {
@@ -151,7 +184,10 @@ async function callTool(toolName, input, baseUrl) {
   }
 }
 
+
+// 🚀 HANDLER NETLIFY
 export default async function handler(req) {
+
   if (req.method === "OPTIONS") {
     return new Response("", { status: 204, headers: HEADERS });
   }
@@ -169,6 +205,7 @@ export default async function handler(req) {
     let data;
 
     while (true) {
+
       const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
