@@ -18,68 +18,66 @@ Tu réponds comme sur chantier :
 OBJECTIF
 ═══════════════════════════════════════
 
-Aider à résoudre un problème réel de construction.
+Résoudre un problème réel.
 
-Toujours raisonner :
-
+Toujours :
 diagnostic → système → produits → mise en œuvre
 
 ═══════════════════════════════════════
 UTILISATION DES OUTILS
 ═══════════════════════════════════════
 
-Tu as accès à :
+Tu peux utiliser :
 
-- search_products → trouver les bons produits
-- get_product_details → lire fiche technique + PDF
-- search_doctrine → règles techniques FAIRĒKO
+- search_products → trouver produits
+- get_product_details → lire fiche + PDF
+- search_doctrine → règles chantier
 
-Tu dois utiliser les outils SI nécessaire.
-
-⚠️ IMPORTANT :
-- ne bloque jamais ta réponse si un tool n’est pas utilisé
-- ne fais pas de boucle
-- reste fluide
-
-═══════════════════════════════════════
-PRIORITÉS
-═══════════════════════════════════════
-
-1. comprendre le chantier
-2. proposer un système cohérent
-3. utiliser les produits FAIREKO
-4. vérifier les infos techniques si utile
-
-SI une info est dans la fiche produit ou PDF :
-→ elle est prioritaire
+IMPORTANT :
+- utilise les outils si un matériau est concerné
+- ne bloque jamais si un tool échoue
+- pas de boucle infinie
 
 ═══════════════════════════════════════
 RÈGLE PRODUIT
 ═══════════════════════════════════════
 
-Tu ne proposes jamais un produit seul.
+Toujours proposer un système.
 
-Toujours un système :
+Jamais un produit seul.
 
+Toujours :
 - accroche
 - corps
 - finition
 
 ═══════════════════════════════════════
+RÈGLE PDF
+═══════════════════════════════════════
+
+Si une info est dans le PDF :
+→ elle est prioritaire
+
+═══════════════════════════════════════
+ALTERNATIVE
+═══════════════════════════════════════
+
+Toujours proposer au moins UNE alternative si possible.
+
+═══════════════════════════════════════
 STYLE
 ═══════════════════════════════════════
 
+- court
+- terrain
 - max 3 paragraphes
-- pas de blabla
-- pas de liste inutile
-- ton chantier
 
 ═══════════════════════════════════════
-JSON OBLIGATOIRE
+JSON
 ═══════════════════════════════════════
 
 {
-  "message": "réponse claire chantier",
+  "message": "réponse chantier",
   "posture": "diagnostic|conseil|pose",
   "tu_as_pense_a": [],
   "alertes": [],
@@ -93,7 +91,7 @@ JSON OBLIGATOIRE
 const TOOLS = [
   {
     name: "search_products",
-    description: "Recherche produits",
+    description: "Trouver produits FAIREKO dans catalogue",
     input_schema: {
       type: "object",
       properties: { query: { type: "string" } }
@@ -101,7 +99,7 @@ const TOOLS = [
   },
   {
     name: "get_product_details",
-    description: "Détails produit",
+    description: "Lire fiche technique + PDF produit",
     input_schema: {
       type: "object",
       properties: { product_id: { type: "number" } },
@@ -110,7 +108,7 @@ const TOOLS = [
   },
   {
     name: "search_doctrine",
-    description: "Knowledge Odoo",
+    description: "Lire règles techniques FAIRĒKO",
     input_schema: {
       type: "object",
       properties: { query: { type: "string" } },
@@ -134,6 +132,7 @@ async function callTool(name, input, baseUrl) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ tool: name, input })
   });
+
   const data = await res.json();
   return data.result || data;
 }
@@ -147,13 +146,34 @@ export default async function handler(req) {
     const body = await req.json();
     const messages = body.messages || [];
 
+    const userMessage = messages[messages.length - 1]?.content || "";
+
     const host = req.headers.get("host");
     const baseUrl = "https://" + host;
 
-    let conversation = [...messages];
-    let iterations = 0;
+    let conversation = [
+      {
+        role: "user",
+        content: `
+Analyse ce chantier.
 
-    while (iterations < 2) {
+IMPORTANT :
+- si matériaux → utilise search_products
+- ensuite utilise get_product_details
+- utilise search_doctrine si besoin
+- propose toujours un système complet
+- propose une alternative si possible
+
+Question :
+${userMessage}
+`
+      }
+    ];
+
+    let iterations = 0;
+    let data;
+
+    while (iterations < 3) {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: {
@@ -171,7 +191,7 @@ export default async function handler(req) {
         })
       });
 
-      const data = await res.json();
+      data = await res.json();
 
       if (data.stop_reason !== "tool_use") break;
 
@@ -192,8 +212,25 @@ export default async function handler(req) {
       iterations++;
     }
 
-    const finalText = conversation[conversation.length - 1]?.content?.[0]?.text || "{}";
-    const parsed = extractJSON(finalText) || { message: "Erreur réponse IA" };
+    const text = (data.content || [])
+      .filter(c => c.type === "text")
+      .map(c => c.text)
+      .join("\n");
+
+    let parsed = extractJSON(text);
+
+    if (!parsed) {
+      parsed = {
+        message: text || "Réponse non exploitable",
+        posture: "diagnostic",
+        tu_as_pense_a: [],
+        alertes: [],
+        produits_suggeres: [],
+        questions_suivantes: [],
+        etape_projet: "diagnostic",
+        sujet_principal: "autre"
+      };
+    }
 
     return new Response(JSON.stringify(parsed), {
       status: 200,
