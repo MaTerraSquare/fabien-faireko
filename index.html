@@ -201,87 +201,137 @@
     backdrop-filter: blur(4px);
   }
 
-  /* Widget flottant Intercom-style */
+  /* Widget flottant — grande fenêtre */
   .widget-trigger {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 24px;
+    right: 24px;
     z-index: 9999;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
+    height: 56px;
+    border-radius: 28px;
     background: var(--green-deep);
     color: var(--cream-light);
-    box-shadow: 0 8px 24px rgba(26,46,26,0.3);
+    box-shadow: 0 10px 30px rgba(26,46,26,0.35), 0 2px 6px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 2px solid var(--cream);
+    padding: 0 22px 0 8px;
+    gap: 10px;
+  }
+  .widget-trigger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(26,46,26,0.45), 0 4px 10px rgba(0,0,0,0.12);
+    background: var(--green-mid);
+  }
+  .widget-trigger-avatar {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: var(--cream-light);
+    color: var(--green-deep);
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
     font-family: 'Playfair Display', serif;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 600;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    border: 2px solid var(--cream);
+    flex-shrink: 0;
   }
-  .widget-trigger:hover {
-    transform: translateY(-4px) scale(1.05);
-    box-shadow: 0 12px 32px rgba(26,46,26,0.4);
+  .widget-trigger-text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
   }
-  .widget-trigger-badge {
-    position: absolute;
-    top: -4px;
-    right: -4px;
-    background: var(--rust);
-    color: var(--cream-light);
+  .widget-trigger-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .widget-trigger-sub {
     font-family: 'DM Sans', sans-serif;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-    padding: 2px 6px;
-    border-radius: 10px;
-    text-transform: uppercase;
+    font-size: 10px;
+    opacity: 0.85;
+    letter-spacing: 0.04em;
+  }
+  .widget-trigger-pulse {
+    position: absolute;
+    top: 6px; right: 8px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--moss);
+    box-shadow: 0 0 0 0 rgba(107,125,74,0.6);
+    animation: triggerPulse 2.4s infinite;
+  }
+  @keyframes triggerPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(107,125,74,0.6); }
+    50%      { box-shadow: 0 0 0 8px rgba(107,125,74,0); }
   }
 
+  /* Backdrop derrière la fenêtre */
+  .widget-backdrop {
+    position: fixed; inset: 0;
+    z-index: 9997;
+    background: rgba(26,46,26,0.45);
+    backdrop-filter: blur(6px);
+    animation: backdropFadeIn 0.25s ease-out both;
+  }
+  @keyframes backdropFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Fenêtre principale — GRANDE */
   .widget-frame {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 9998;
-    width: 420px;
-    max-width: calc(100vw - 40px);
-    height: 720px;
-    max-height: calc(100vh - 40px);
+    width: min(900px, calc(100vw - 48px));
+    height: min(820px, calc(100vh - 48px));
     background: var(--paper);
-    border-radius: 18px;
-    box-shadow: 0 24px 64px rgba(26,46,26,0.25), 0 4px 12px rgba(0,0,0,0.08);
+    border-radius: 20px;
+    box-shadow: 0 32px 80px rgba(26,46,26,0.35), 0 8px 24px rgba(0,0,0,0.15);
     border: 1px solid var(--line);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transform-origin: bottom right;
-    animation: widgetOpen 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: widgetOpen 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
   @keyframes widgetOpen {
-    from { opacity: 0; transform: scale(0.9) translateY(20px); }
-    to   { opacity: 1; transform: scale(1) translateY(0); }
+    from { opacity: 0; transform: translate(-50%, -45%) scale(0.96); }
+    to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   }
 
-  /* Mobile fullscreen widget */
-  @media (max-width: 640px) {
+  /* Mobile fullscreen */
+  @media (max-width: 768px) {
     .widget-frame {
-      bottom: 0;
-      right: 0;
+      top: 0; left: 0;
+      transform: none;
       width: 100vw;
       height: 100vh;
-      max-height: 100vh;
       border-radius: 0;
       border: none;
+      animation: widgetSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes widgetSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
     .widget-trigger {
       bottom: 16px;
       right: 16px;
-      width: 56px;
-      height: 56px;
+      height: 52px;
+      padding: 0 18px 0 6px;
+    }
+    .widget-trigger-avatar {
+      width: 38px; height: 38px;
+      font-size: 20px;
+    }
+    .widget-backdrop {
+      backdrop-filter: blur(2px);
+      background: rgba(26,46,26,0.6);
     }
   }
 
@@ -457,41 +507,43 @@ const saveConversation = (data) => {
 const Header = ({ onReset, onCalculator, onClose }) => (
   <header className="relative flex-shrink-0">
     <div className="deco-line"></div>
-    <div className="px-4 py-3 flex items-center justify-between">
+    <div className="px-6 sm:px-8 py-4 flex items-center justify-between max-w-3xl mx-auto w-full">
       <div className="flex items-center gap-3">
         <div className="relative">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center font-display text-lg font-semibold"
+          <div className="w-11 h-11 rounded-full flex items-center justify-center font-display text-xl font-semibold"
                style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
             F
           </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2"
+          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
                 style={{background:'var(--moss)', borderColor:'var(--paper)'}}></span>
         </div>
         <div>
-          <h1 className="font-display text-base leading-none" style={{color:'var(--green-deep)'}}>
+          <h1 className="font-display text-lg sm:text-xl leading-none" style={{color:'var(--green-deep)'}}>
             Fabien
           </h1>
-          <p className="text-xs mt-0.5" style={{color:'var(--ink-soft)'}}>
-            Conseiller FAIRĒKO · <span className="badge" style={{color:'var(--rust)'}}>BETA</span>
+          <p className="text-xs mt-1" style={{color:'var(--ink-soft)'}}>
+            Conseiller technique FAIRĒKO · <span className="badge" style={{color:'var(--rust)'}}>BETA</span>
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <button onClick={onCalculator}
-                className="action-btn btn-hover px-2.5 py-1.5 rounded-md text-sm flex items-center gap-1"
+                className="action-btn btn-hover px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5"
                 title="Calculatrice m²">
           <span>📐</span>
+          <span className="hidden sm:inline">m²</span>
         </button>
         <button onClick={onReset}
-                className="action-btn btn-hover px-2.5 py-1.5 rounded-md text-sm flex items-center gap-1"
+                className="action-btn btn-hover px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5"
                 title="Nouvelle conversation">
           <span>↻</span>
+          <span className="hidden sm:inline">Nouvelle</span>
         </button>
         {onClose && (
           <button onClick={onClose}
-                  className="action-btn btn-hover px-2.5 py-1.5 rounded-md text-sm flex items-center gap-1"
-                  title="Réduire">
-            <span>−</span>
+                  className="action-btn btn-hover px-3 py-1.5 rounded-md text-base font-medium"
+                  title="Fermer">
+            ×
           </button>
         )}
       </div>
@@ -501,12 +553,13 @@ const Header = ({ onReset, onCalculator, onClose }) => (
 );
 
 const BetaBanner = () => (
-  <div className="px-4 pt-3 flex-shrink-0">
-    <div className="text-[11px] leading-snug p-2.5 rounded-md flex gap-2"
+  <div className="px-6 sm:px-8 pt-4 max-w-3xl mx-auto w-full flex-shrink-0">
+    <div className="text-xs sm:text-sm leading-relaxed p-3 rounded-md flex gap-2"
          style={{background:'var(--cream-light)', color:'var(--ink-soft)', border:'1px solid var(--line-soft)'}}>
-      <span className="text-sm leading-none">⚠️</span>
+      <span className="text-base leading-none">⚠️</span>
       <span>
-        Version BETA — recommandations indicatives, à valider avec un pro.{' '}
+        Fabien est en version BETA. Ses recommandations sont indicatives et doivent être validées
+        par un professionnel avant tout chantier. Pour toute question critique :{' '}
         <a href={`mailto:${FAIREKO_PHONE}`} className="font-medium underline decoration-dotted"
            style={{color:'var(--green-deep)'}}>
           {FAIREKO_PHONE}
@@ -518,39 +571,45 @@ const BetaBanner = () => (
 
 const Welcome = ({ onStart }) => {
   const starters = [
-    { icon:'🧱', label:'Enduire un mur extérieur à la chaux' },
-    { icon:'💧', label:'Traiter un mur humide avec salpêtre' },
-    { icon:'🌿', label:'Isoler par l\'extérieur en biosourcé' },
-    { icon:'🏛️', label:'Rénover un bâti ancien en moellons' },
+    { icon:'🧱', label:'Enduire un mur extérieur à la chaux',  hint:'Système 3 couches, choix produits' },
+    { icon:'💧', label:'Traiter un mur humide avec salpêtre',   hint:'Diagnostic + assainissement' },
+    { icon:'🌿', label:'Isoler par l\'extérieur en biosourcé',   hint:'ETICS chanvre, fibre bois, liège' },
+    { icon:'🏛️', label:'Rénover un bâti ancien en moellons',     hint:'Patrimoine wallon' },
   ];
   return (
-    <div className="px-2 py-6 text-center anim-fade-up">
-      <div className="inline-block mb-3 px-3 py-1 rounded-full text-[10px] font-medium"
+    <div className="max-w-2xl mx-auto px-2 py-8 sm:py-12 text-center anim-fade-up">
+      <div className="inline-block mb-5 px-4 py-1.5 rounded-full text-xs font-medium"
            style={{background:'var(--cream)', color:'var(--green-deep)', letterSpacing:'0.05em'}}>
-        ÉCO-CONSTRUCTION · WALLONIE
+        ÉCO-CONSTRUCTION · WALLONIE & BRUXELLES
       </div>
-      <h2 className="font-display text-2xl leading-tight mb-2"
+      <h2 className="font-display text-3xl sm:text-4xl md:text-5xl leading-tight mb-4"
           style={{color:'var(--green-deep)'}}>
         Salut, je suis <em>Fabien</em>.
       </h2>
-      <p className="font-display italic text-sm mb-5"
+      <p className="font-display italic text-base sm:text-lg md:text-xl mb-8 max-w-xl mx-auto"
          style={{color:'var(--ink-soft)'}}>
-        Conseiller technique FAIRĒKO. Je connais le bâti ancien wallon
-        et les biosourcés sur le bout des doigts.
+        Ancien chef de chantier, je connais le bâti ancien wallon
+        et les matériaux biosourcés sur le bout des doigts.
       </p>
-      <p className="text-xs mb-3" style={{color:'var(--ink-soft)'}}>
-        Décris ton chantier ou choisis un sujet&nbsp;:
+      <p className="text-sm mb-5" style={{color:'var(--ink-soft)'}}>
+        Décris ton chantier ou choisis un sujet pour commencer&nbsp;:
       </p>
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {starters.map((s, i) => (
           <button key={i}
                   onClick={() => onStart(s.label)}
-                  className="chip-option btn-hover px-3 py-2.5 rounded-lg text-left flex items-center gap-2.5 text-xs">
-            <span className="chip-icon text-base">{s.icon}</span>
-            <span className="font-medium">{s.label}</span>
+                  className="chip-option btn-hover px-4 py-4 rounded-xl text-left flex items-start gap-3 text-sm">
+            <span className="chip-icon text-2xl flex-shrink-0">{s.icon}</span>
+            <span className="flex-1">
+              <span className="block font-medium leading-snug">{s.label}</span>
+              <span className="block text-xs mt-0.5 opacity-70">{s.hint}</span>
+            </span>
           </button>
         ))}
       </div>
+      <p className="text-xs mt-8 italic" style={{color:'var(--ink-soft)'}}>
+        Ou tape directement ta question dans la zone ci-dessous.
+      </p>
     </div>
   );
 };
@@ -1412,53 +1471,62 @@ const App = () => {
         <button onClick={() => setWidgetOpen(true)}
                 className="widget-trigger anim-fade-up"
                 title="Discuter avec Fabien — Conseiller technique FAIRĒKO">
-          F
-          <span className="widget-trigger-badge">Beta</span>
+          <span className="widget-trigger-pulse"></span>
+          <div className="widget-trigger-avatar">F</div>
+          <div className="widget-trigger-text">
+            <span className="widget-trigger-name">Fabien</span>
+            <span className="widget-trigger-sub">Conseiller FAIRĒKO · BETA</span>
+          </div>
         </button>
       )}
 
-      {/* Widget frame (Intercom-style) */}
+      {/* Backdrop + grande fenêtre flottante */}
       {widgetOpen && (
-        <div className="widget-frame">
-          <div className="relative flex flex-col h-full">
-            <Header onReset={handleReset}
-                    onCalculator={() => setModal('calc')}
-                    onClose={() => setWidgetOpen(false)} />
+        <>
+          <div className="widget-backdrop" onClick={() => setWidgetOpen(false)}></div>
+          <div className="widget-frame">
+            <div className="relative flex flex-col h-full">
+              <Header onReset={handleReset}
+                      onCalculator={() => setModal('calc')}
+                      onClose={() => setWidgetOpen(false)} />
 
-            {conversation.length === 0 && <BetaBanner />}
+              {conversation.length === 0 && <BetaBanner />}
 
-            <main className="flex-1 overflow-y-auto px-4 py-4 relative">
-              {conversation.length === 0 ? (
-                <Welcome onStart={(text) => sendMessage(text)} />
-              ) : (
-                <div className="space-y-1">
-                  {conversation.map((m, i) => {
-                    const isLast = i === conversation.length - 1;
-                    if (m.role === 'user') return <UserMessage key={i} text={m.text} />;
-                    return <AssistantMessage key={i} data={m.data} isLast={isLast && !loading}
-                                             onQuickSelect={(text) => sendMessage(text)}
-                                             surface={surface}
-                                             onSurfaceChange={setSurface}
-                                             onCalculator={() => setModal('calc')} />;
-                  })}
-                  {loading && <ThinkingMessage />}
-                  <div ref={messagesEndRef}></div>
+              <main className="flex-1 overflow-y-auto px-6 sm:px-8 py-5 relative">
+                {conversation.length === 0 ? (
+                  <Welcome onStart={(text) => sendMessage(text)} />
+                ) : (
+                  <div className="max-w-3xl mx-auto space-y-1">
+                    {conversation.map((m, i) => {
+                      const isLast = i === conversation.length - 1;
+                      if (m.role === 'user') return <UserMessage key={i} text={m.text} />;
+                      return <AssistantMessage key={i} data={m.data} isLast={isLast && !loading}
+                                               onQuickSelect={(text) => sendMessage(text)}
+                                               surface={surface}
+                                               onSurfaceChange={setSurface}
+                                               onCalculator={() => setModal('calc')} />;
+                    })}
+                    {loading && <ThinkingMessage />}
+                    <div ref={messagesEndRef}></div>
+                  </div>
+                )}
+              </main>
+
+              <footer className="px-6 sm:px-8 pb-4 pt-3 border-t flex-shrink-0"
+                      style={{background:'var(--paper)', borderColor:'var(--line-soft)'}}>
+                <div className="max-w-3xl mx-auto">
+                  <InputBar value={input}
+                            onChange={setInput}
+                            onSubmit={() => sendMessage()}
+                            onMicToggle={toggleMic}
+                            recording={recording}
+                            disabled={loading} />
+                  <ActionsBar actions={currentActions} onAction={handleAction} />
                 </div>
-              )}
-            </main>
-
-            <footer className="px-4 pb-3 pt-2 border-t flex-shrink-0"
-                    style={{background:'var(--paper)', borderColor:'var(--line-soft)'}}>
-              <InputBar value={input}
-                        onChange={setInput}
-                        onSubmit={() => sendMessage()}
-                        onMicToggle={toggleMic}
-                        recording={recording}
-                        disabled={loading} />
-              <ActionsBar actions={currentActions} onAction={handleAction} />
-            </footer>
+              </footer>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Modals */}
