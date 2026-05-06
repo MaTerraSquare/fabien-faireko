@@ -1,0 +1,1519 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Fabien — l'IA construction bas carbone et biosourcée FAIRĒKO" />
+<title>Fabien — L'IA construction bas carbone et biosourcée</title>
+
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ================================================================
+   TOKENS DE DESIGN FAIREKO
+   ================================================================ */
+:root {
+  --fk-vert-fonce: #2d4a2b;
+  --fk-vert-mousse: #5a7548;
+  --fk-vert-sauge: #8ba888;
+  --fk-creme: #f5f1e8;
+  --fk-blanc-casse: #fafaf7;
+  --fk-terre: #b08968;
+  --fk-bois: #8b6f47;
+  --fk-pierre: #d4cfc4;
+  --fk-charbon: #1a1a17;
+  --fk-gris-doux: #6b6b66;
+  --fk-bordure: #e8e3d6;
+  --fk-success: #4a7c4a;
+  --fk-danger: #a83838;
+
+  --fk-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --fk-font-serif: "Playfair Display", Georgia, serif;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --sp-12: 48px;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(26,26,23,0.05);
+  --shadow-md: 0 2px 8px rgba(26,26,23,0.08);
+  --shadow-lg: 0 8px 24px rgba(26,26,23,0.12);
+
+  --tr-fast: 150ms ease;
+  --tr-normal: 250ms ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--fk-font-sans);
+  color: var(--fk-charbon);
+  background: var(--fk-blanc-casse);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; font-size: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ================================================================
+   TOPBAR
+   ================================================================ */
+.fk-topbar {
+  height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-5);
+  font-size: 13px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.fk-topbar-back {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-creme);
+  transition: opacity var(--tr-fast);
+}
+.fk-topbar-back:hover { opacity: 0.8; }
+.fk-topbar-spacer { flex: 1; }
+.fk-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  opacity: 0.8;
+}
+.fk-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #7fb87f;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ================================================================
+   LAYOUT PRINCIPAL
+   ================================================================ */
+.fk-app {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  height: calc(100vh - 36px);
+  width: 100vw;
+}
+
+/* ================================================================
+   SIDEBAR GAUCHE
+   ================================================================ */
+.fk-sidebar-left {
+  background: var(--fk-creme);
+  border-right: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fk-brand {
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--fk-bordure);
+}
+.fk-brand-logo {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.fk-brand-name {
+  font-family: var(--fk-font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+}
+.fk-brand-tagline {
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  margin-top: 1px;
+  line-height: 1.2;
+}
+.fk-new-chat {
+  margin: var(--sp-4) var(--sp-4) var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+}
+.fk-new-chat:hover { background: var(--fk-charbon); }
+
+.fk-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
+}
+
+/* PROJETS DÉPLIABLES */
+.fk-projects-block { margin-bottom: var(--sp-3); }
+.fk-projects-toggle {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-3);
+  background: transparent;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--tr-fast);
+}
+.fk-projects-toggle:hover { background: rgba(45,74,43,0.08); }
+.fk-projects-icon {
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-projects-label { flex: 1; text-align: left; }
+.fk-projects-count {
+  font-size: 11px;
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.fk-projects-chevron {
+  width: 16px; height: 16px;
+  color: var(--fk-gris-doux);
+  transition: transform var(--tr-normal);
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-chevron { transform: rotate(90deg); }
+.fk-projects-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-list { max-height: 500px; }
+.fk-projects-list-inner {
+  padding: var(--sp-1) 0 var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fk-project-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--fk-charbon);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-3);
+  border-left: 2px solid var(--fk-bordure);
+  padding-left: var(--sp-3);
+}
+.fk-project-item:hover {
+  background: rgba(176,137,104,0.12);
+  border-left-color: var(--fk-terre);
+}
+.fk-project-item.active {
+  background: rgba(176,137,104,0.18);
+  border-left-color: var(--fk-terre);
+  font-weight: 500;
+}
+.fk-project-emoji { font-size: 14px; flex-shrink: 0; }
+.fk-project-text {
+  flex: 1; min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-project-conv-count {
+  font-size: 10px;
+  color: var(--fk-gris-doux);
+  flex-shrink: 0;
+}
+.fk-project-new {
+  margin: var(--sp-2) var(--sp-3) 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: 1.5px dashed var(--fk-pierre);
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--tr-fast);
+}
+.fk-project-new:hover {
+  border-color: var(--fk-vert-mousse);
+  color: var(--fk-vert-fonce);
+  background: white;
+}
+
+/* HISTORIQUE */
+.fk-history-section { margin-top: var(--sp-3); }
+.fk-history-label {
+  padding: 0 var(--sp-3) var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fk-history-empty {
+  padding: var(--sp-3);
+  font-size: 12px;
+  color: var(--fk-gris-doux);
+  font-style: italic;
+}
+.fk-history-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.fk-history-item:hover { background: rgba(45,74,43,0.08); }
+.fk-history-item.active {
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  font-weight: 500;
+}
+.fk-history-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* PIED SIDEBAR */
+.fk-sidebar-footer {
+  border-top: 1px solid var(--fk-bordure);
+  padding: var(--sp-3);
+}
+.fk-help-link {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 13px;
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+  cursor: pointer;
+}
+.fk-help-link:hover {
+  background: rgba(45,74,43,0.06);
+  color: var(--fk-vert-fonce);
+}
+
+/* ================================================================
+   ZONE CENTRALE — CHAT
+   ================================================================ */
+.fk-main {
+  display: flex;
+  flex-direction: column;
+  background: var(--fk-blanc-casse);
+  overflow: hidden;
+  position: relative;
+}
+.fk-chat-header {
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--fk-bordure);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--fk-blanc-casse);
+}
+.fk-current-agent { display: flex; align-items: center; gap: var(--sp-3); }
+.fk-current-agent-icon {
+  width: 28px; height: 28px;
+  background: var(--fk-vert-mousse);
+  border-radius: var(--r-sm);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.fk-current-agent-name { font-weight: 600; color: var(--fk-vert-fonce); }
+.fk-current-agent-sub { font-size: 12px; color: var(--fk-gris-doux); }
+.fk-chat-actions { display: flex; gap: var(--sp-2); }
+.fk-icon-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-icon-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
+
+.fk-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-6) 0;
+}
+
+/* ACCUEIL */
+.fk-welcome {
+  max-width: 760px;
+  margin: var(--sp-10) auto var(--sp-6);
+  padding: 0 var(--sp-6);
+  text-align: center;
+}
+.fk-welcome-title {
+  font-family: var(--fk-font-serif);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--sp-3);
+}
+.fk-welcome-subtitle {
+  font-size: 16px;
+  color: var(--fk-gris-doux);
+  max-width: 540px;
+  margin: 0 auto var(--sp-8);
+  line-height: 1.6;
+}
+.fk-suggestions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  max-width: 680px;
+  margin: 0 auto;
+}
+.fk-suggestion {
+  padding: var(--sp-4);
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: all var(--tr-fast);
+  cursor: pointer;
+}
+.fk-suggestion:hover {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-creme);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.fk-suggestion-icon { font-size: 20px; margin-bottom: var(--sp-2); }
+.fk-suggestion-title { font-size: 14px; font-weight: 600; color: var(--fk-vert-fonce); margin-bottom: 2px; }
+.fk-suggestion-desc { font-size: 13px; color: var(--fk-gris-doux); line-height: 1.4; }
+
+/* MESSAGES */
+.fk-msg {
+  max-width: 760px;
+  margin: 0 auto var(--sp-5);
+  padding: 0 var(--sp-6);
+  display: flex;
+  gap: var(--sp-3);
+}
+.fk-msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+.fk-msg.user .fk-msg-avatar {
+  background: var(--fk-terre);
+  color: white;
+}
+.fk-msg.assistant .fk-msg-avatar {
+  background: var(--fk-vert-mousse);
+  color: var(--fk-creme);
+}
+.fk-msg-bubble {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  font-size: 14.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.fk-msg.user .fk-msg-bubble {
+  background: var(--fk-creme);
+  border-color: transparent;
+}
+
+/* QUICK OPTIONS */
+.fk-quick-options {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-quick-question {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fk-vert-fonce);
+  margin-bottom: var(--sp-2);
+  width: 100%;
+}
+.fk-quick-btn {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-creme);
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--fk-charbon);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: all var(--tr-fast);
+}
+.fk-quick-btn:hover {
+  background: white;
+  border-color: var(--fk-vert-mousse);
+  transform: translateY(-1px);
+}
+
+/* PRODUITS */
+.fk-products {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-product-card {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+/* INDICATEUR FRAPPE */
+.fk-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--sp-2) 0;
+}
+.fk-typing-dot {
+  width: 7px; height: 7px;
+  background: var(--fk-vert-mousse);
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out;
+}
+.fk-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.fk-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ================================================================
+   BARRE DE SAISIE + FABIEN
+   ================================================================ */
+.fk-input-zone {
+  padding: var(--sp-3) var(--sp-6) var(--sp-4);
+  background: var(--fk-blanc-casse);
+  position: relative;
+}
+.fk-input-container {
+  max-width: 760px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+.fk-input-box {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.fk-input-box:focus-within {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: 0 0 0 3px rgba(90,117,72,0.12);
+}
+.fk-input-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 200px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fk-charbon);
+  background: transparent;
+  padding: var(--sp-2) var(--sp-1);
+}
+.fk-input-textarea::placeholder { color: var(--fk-gris-doux); }
+.fk-input-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--fk-bordure);
+}
+.fk-input-tools { display: flex; gap: var(--sp-1); }
+.fk-tool-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tr-fast);
+}
+.fk-tool-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
+.fk-send-btn {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-send-btn:hover { background: var(--fk-charbon); }
+.fk-send-btn:disabled { background: var(--fk-pierre); cursor: not-allowed; }
+
+/* FABIEN À DROITE BARRE */
+.fk-fabien-anchor {
+  width: 110px;
+  height: 160px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.fk-fabien-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(45,74,43,0.15));
+  animation: fabien-idle 4s ease-in-out infinite;
+}
+@keyframes fabien-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.fk-fabien-placeholder {
+  width: 100px;
+  height: 150px;
+  background: linear-gradient(180deg, var(--fk-vert-sauge) 0%, var(--fk-vert-mousse) 100%);
+  border-radius: 50% 50% 20% 20%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* DISCLAIMER */
+.fk-disclaimer-zone {
+  text-align: center;
+  margin-top: var(--sp-2);
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  line-height: 1.5;
+}
+.fk-disclaimer-zone a {
+  color: var(--fk-gris-doux);
+  text-decoration: underline;
+  text-decoration-color: var(--fk-pierre);
+  text-underline-offset: 2px;
+}
+.fk-disclaimer-zone a:hover { color: var(--fk-vert-fonce); }
+.fk-disclaimer-sep { margin: 0 var(--sp-2); opacity: 0.4; }
+
+/* ================================================================
+   SIDEBAR DROITE — AGENTS + ACTIONS
+   ================================================================ */
+.fk-sidebar-right {
+  background: var(--fk-creme);
+  border-left: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-4);
+  gap: var(--sp-5);
+}
+.fk-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--sp-3);
+  padding: 0 var(--sp-2);
+}
+.fk-agents { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-agent-card {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  cursor: pointer;
+  transition: all var(--tr-fast);
+  position: relative;
+}
+.fk-agent-card:hover {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.fk-agent-card.active {
+  border-color: var(--fk-vert-fonce);
+  background: white;
+  box-shadow: 0 0 0 2px var(--fk-vert-fonce);
+}
+.fk-agent-card.active::after {
+  content: '✓';
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 18px; height: 18px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.fk-agent-header { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.fk-agent-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.fk-agent-icon.expert { background: rgba(45,74,43,0.12); }
+.fk-agent-icon.chantier { background: rgba(176,137,104,0.18); }
+.fk-agent-icon.devis { background: rgba(139,168,136,0.25); }
+.fk-agent-name { font-weight: 600; font-size: 14px; color: var(--fk-vert-fonce); }
+.fk-agent-desc { font-size: 12px; color: var(--fk-gris-doux); line-height: 1.4; }
+
+/* ACTIONS */
+.fk-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-action-btn {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  transition: all var(--tr-fast);
+  text-align: left;
+  width: 100%;
+}
+.fk-action-btn:hover:not(:disabled) {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-blanc-casse);
+  transform: translateY(-1px);
+}
+.fk-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fk-action-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-action-content { flex: 1; }
+.fk-action-label { font-size: 13px; font-weight: 600; color: var(--fk-charbon); }
+.fk-action-desc { font-size: 11px; color: var(--fk-gris-doux); margin-top: 1px; }
+
+.fk-mail-link {
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 13px;
+  font-weight: 500;
+  justify-content: center;
+  transition: background var(--tr-fast);
+  margin-top: auto;
+}
+.fk-mail-link:hover { background: var(--fk-charbon); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fk-pierre); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fk-gris-doux); }
+
+.ico { width: 18px; height: 18px; stroke-width: 1.8; }
+.ico-sm { width: 14px; height: 14px; stroke-width: 1.8; }
+
+@media (max-width: 1280px) {
+  .fk-app { grid-template-columns: 240px 1fr 300px; }
+  .fk-fabien-anchor { width: 90px; height: 140px; }
+}
+@media (max-width: 1024px) {
+  .fk-app { grid-template-columns: 0 1fr 0; }
+  .fk-sidebar-left, .fk-sidebar-right { display: none; }
+  .fk-fabien-anchor { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="fk-topbar">
+  <a href="https://www.faireko.be" class="fk-topbar-back">
+    <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Retour à FAIREKO.be
+  </a>
+  <div class="fk-topbar-spacer"></div>
+  <div class="fk-topbar-status">
+    <span class="fk-status-dot"></span>
+    <span id="status-text">Fabien · Connecté</span>
+  </div>
+</div>
+
+<div class="fk-app">
+
+  <!-- SIDEBAR GAUCHE -->
+  <aside class="fk-sidebar-left">
+    <div class="fk-brand">
+      <div class="fk-brand-logo">F</div>
+      <div>
+        <div class="fk-brand-name">Fabien</div>
+        <div class="fk-brand-tagline">L'IA construction bas carbone et biosourcée</div>
+      </div>
+    </div>
+
+    <button class="fk-new-chat" onclick="startNewConversation()">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouvelle conversation
+    </button>
+
+    <div class="fk-sidebar-scroll">
+
+      <!-- PROJETS DÉPLIABLES -->
+      <div class="fk-projects-block expanded" id="projects-block">
+        <button class="fk-projects-toggle" id="projects-toggle">
+          <span class="fk-projects-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="fk-projects-label">Mes projets</span>
+          <span class="fk-projects-count" id="projects-count">0</span>
+          <svg class="fk-projects-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="fk-projects-list">
+          <div class="fk-projects-list-inner" id="projects-list">
+            <button class="fk-project-new" onclick="createProject()">
+              <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nouveau projet
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORIQUE -->
+      <div class="fk-history-section">
+        <div class="fk-history-label">Conversations</div>
+        <div id="history-list">
+          <div class="fk-history-empty">Aucune conversation pour le moment</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="fk-sidebar-footer">
+      <div class="fk-help-link">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Aide & assistance
+      </div>
+    </div>
+  </aside>
+
+  <!-- ZONE CENTRALE -->
+  <main class="fk-main">
+    <header class="fk-chat-header">
+      <div class="fk-current-agent">
+        <div class="fk-current-agent-icon">⊕</div>
+        <div>
+          <div class="fk-current-agent-name" id="current-agent-name">Expert prescription</div>
+          <div class="fk-current-agent-sub" id="current-agent-sub">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+        </div>
+      </div>
+      <div class="fk-chat-actions">
+        <button class="fk-icon-btn" title="Plus d'options">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="fk-messages" id="messages">
+      <div class="fk-welcome" id="welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+        <div class="fk-suggestions">
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🧱</div>
+            <div class="fk-suggestion-title">ITI mur ancien biosourcé</div>
+            <div class="fk-suggestion-desc">Brique pleine + chanvre — quelle stratification ?</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🔥</div>
+            <div class="fk-suggestion-title">Comparer 2 isolants</div>
+            <div class="fk-suggestion-desc">PI-HEMP Wall vs fibre de bois</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🏠</div>
+            <div class="fk-suggestion-title">Enduit chaux extérieur</div>
+            <div class="fk-suggestion-desc">Stratification gobetis → corps → finition</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">💧</div>
+            <div class="fk-suggestion-title">Mur humide cave</div>
+            <div class="fk-suggestion-desc">Diagnostic + solution assainissement</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fk-input-zone">
+      <div class="fk-input-container">
+        <div class="fk-input-box">
+          <textarea
+            class="fk-input-textarea"
+            id="user-input"
+            placeholder="Posez votre question à Fabien…"
+            rows="1"
+            onkeydown="handleKeydown(event)"></textarea>
+          <div class="fk-input-toolbar">
+            <div class="fk-input-tools">
+              <button class="fk-tool-btn" title="Joindre un fichier" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Photo" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Lien" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Dictée vocale" id="voice-btn" onclick="toggleVoiceInput()">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+            </div>
+            <button class="fk-send-btn" id="send-btn" onclick="sendMessage()" title="Envoyer">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- FABIEN À DROITE -->
+        <div class="fk-fabien-anchor" id="fabien-zone">
+          <div class="fk-fabien-placeholder" id="fabien-placeholder">FABIEN</div>
+          <img class="fk-fabien-img" id="fabien-img" src="/fabien/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
+        </div>
+      </div>
+
+      <div class="fk-disclaimer-zone">
+        Fabien est un système d'IA et peut commettre des erreurs. Vérifiez les informations critiques (λ, μ, classements feu) auprès des fiches techniques officielles.
+        <br/>
+        <a href="/legal/privacy">Politique de confidentialité</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="/legal/terms">Conditions d'utilisation</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="https://www.faireko.be">faireko.be</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- SIDEBAR DROITE -->
+  <aside class="fk-sidebar-right">
+    <div>
+      <div class="fk-panel-title">Choisir un partenaire</div>
+      <div class="fk-agents">
+        <div class="fk-agent-card active" data-agent="prescription" data-name="Expert prescription" data-desc="Systèmes biosourcés et bas carbone, conformité ETA/ATG." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon expert">⊕</div>
+            <div class="fk-agent-name">Expert prescription</div>
+          </div>
+          <div class="fk-agent-desc">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="chantier" data-name="Conseil chantier" data-desc="Mise en œuvre, dosages, ordres de couches, pathologies humidité." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon chantier">🔧</div>
+            <div class="fk-agent-name">Conseil chantier</div>
+          </div>
+          <div class="fk-agent-desc">Mise en œuvre, dosages, ordres de couches, pathologies humidité.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="devis" data-name="Devis & métré" data-desc="Calcul de quantités, comparaison fournisseurs, chiffrage rapide." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon devis">📋</div>
+            <div class="fk-agent-name">Devis & métré</div>
+          </div>
+          <div class="fk-agent-desc">Calcul de quantités, comparaison fournisseurs, chiffrage rapide.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="fk-panel-title">Actions FAIREKO</div>
+      <div class="fk-actions">
+        <button class="fk-action-btn" id="action-recap" onclick="exportConversation()" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Exporter en PDF</div>
+            <div class="fk-action-desc">Toute la conversation</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-guide" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Guide de pose</div>
+            <div class="fk-action-desc">Pas-à-pas chantier</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-devis" onclick="requestDevis()">
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Devis FAIREKO</div>
+            <div class="fk-action-desc">Chiffrage des produits</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <a href="mailto:hello@nbsdistribution.eu?subject=Demande%20depuis%20Fabien" class="fk-mail-link">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contacter un humain
+    </a>
+  </aside>
+
+</div>
+
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const API_ENDPOINT = '/api/fabien-v2';
+const STORAGE_CONVERSATIONS = 'fk_conversations';
+const STORAGE_PROJECTS = 'fk_projects';
+const STORAGE_CURRENT = 'fk_current';
+
+// État global
+let state = {
+  agent: 'prescription',
+  conversation: [],
+  conversationId: null,
+  projects: [],
+  conversations: []
+};
+
+// ================================================================
+// INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+  renderProjects();
+  renderHistory();
+  setupTextareaAutoResize();
+});
+
+function loadFromStorage() {
+  try {
+    state.projects = JSON.parse(localStorage.getItem(STORAGE_PROJECTS) || '[]');
+    state.conversations = JSON.parse(localStorage.getItem(STORAGE_CONVERSATIONS) || '[]');
+  } catch (e) {
+    console.warn('Storage load failed', e);
+  }
+}
+
+function saveToStorage() {
+  localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(state.projects));
+  localStorage.setItem(STORAGE_CONVERSATIONS, JSON.stringify(state.conversations));
+}
+
+function showFabien() {
+  document.getElementById('fabien-img').style.display = 'block';
+  const ph = document.getElementById('fabien-placeholder');
+  if (ph) ph.style.display = 'none';
+}
+
+function setupTextareaAutoResize() {
+  const ta = document.getElementById('user-input');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  });
+}
+
+// ================================================================
+// AGENTS
+// ================================================================
+function selectAgent(card) {
+  document.querySelectorAll('.fk-agent-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  state.agent = card.dataset.agent;
+  document.getElementById('current-agent-name').textContent = card.dataset.name;
+  document.getElementById('current-agent-sub').textContent = card.dataset.desc;
+}
+
+// ================================================================
+// PROJETS
+// ================================================================
+function renderProjects() {
+  const list = document.getElementById('projects-list');
+  const count = document.getElementById('projects-count');
+  count.textContent = state.projects.length;
+
+  // On garde le bouton "Nouveau projet" en bas
+  const projectsHTML = state.projects.map(p => `
+    <div class="fk-project-item" data-id="${p.id}">
+      <span class="fk-project-emoji">${escapeHtml(p.emoji || '🏠')}</span>
+      <span class="fk-project-text">${escapeHtml(p.name)}</span>
+      <span class="fk-project-conv-count">${p.convCount || 0}</span>
+    </div>
+  `).join('');
+
+  list.innerHTML = projectsHTML + `
+    <button class="fk-project-new" onclick="createProject()">
+      <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouveau projet
+    </button>
+  `;
+}
+
+function createProject() {
+  const name = prompt('Nom du projet (ex: Maison Dupont — 1180)');
+  if (!name) return;
+  state.projects.push({
+    id: 'proj_' + Date.now(),
+    name,
+    emoji: '🏠',
+    convCount: 0,
+    createdAt: Date.now()
+  });
+  saveToStorage();
+  renderProjects();
+}
+
+// Toggle dépliage projets
+document.getElementById('projects-toggle').addEventListener('click', () => {
+  document.getElementById('projects-block').classList.toggle('expanded');
+});
+
+// ================================================================
+// HISTORIQUE
+// ================================================================
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.conversations.length === 0) {
+    list.innerHTML = '<div class="fk-history-empty">Aucune conversation pour le moment</div>';
+    return;
+  }
+  list.innerHTML = state.conversations.slice(-15).reverse().map(c => `
+    <div class="fk-history-item ${c.id === state.conversationId ? 'active' : ''}" onclick="loadConversation('${c.id}')">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="fk-history-item-text">${escapeHtml(c.title || 'Conversation')}</span>
+    </div>
+  `).join('');
+}
+
+function loadConversation(id) {
+  const conv = state.conversations.find(c => c.id === id);
+  if (!conv) return;
+  state.conversationId = id;
+  state.conversation = conv.messages || [];
+  renderMessages();
+  renderHistory();
+}
+
+function startNewConversation() {
+  state.conversation = [];
+  state.conversationId = null;
+  document.getElementById('messages').innerHTML = `
+    <div class="fk-welcome" id="welcome">
+      <h1 class="fk-welcome-title">Bonjour 👋</h1>
+      <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+    </div>
+  `;
+  renderHistory();
+  updateActionsState();
+}
+
+// ================================================================
+// MESSAGES
+// ================================================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderMessages() {
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+
+  if (state.conversation.length === 0) {
+    container.innerHTML = `
+      <div class="fk-welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés.</p>
+      </div>
+    `;
+    return;
+  }
+
+  state.conversation.forEach((msg, idx) => {
+    if (msg.role === 'user') {
+      const userText = typeof msg.content === 'string' ? msg.content : '';
+      container.innerHTML += `
+        <div class="fk-msg user">
+          <div class="fk-msg-avatar">DR</div>
+          <div class="fk-msg-bubble">${escapeHtml(userText)}</div>
+        </div>
+      `;
+    } else if (msg.role === 'assistant') {
+      const data = msg._fabienData || {};
+      let bubble = `<div class="fk-msg-bubble">${escapeHtml(data.message || msg.content || '')}`;
+
+      // Produits
+      if (data.produits_suggeres && data.produits_suggeres.length > 0) {
+        bubble += `<div class="fk-products">`;
+        data.produits_suggeres.forEach(p => {
+          bubble += `<span class="fk-product-card">📦 ${escapeHtml(p.name)}</span>`;
+        });
+        bubble += `</div>`;
+      }
+
+      // Quick options
+      if (data.quick_options && data.quick_options.length > 0) {
+        bubble += `<div class="fk-quick-options">`;
+        if (data.quick_options_question) {
+          bubble += `<div class="fk-quick-question">${escapeHtml(data.quick_options_question)}</div>`;
+        }
+        data.quick_options.forEach(o => {
+          bubble += `<button class="fk-quick-btn" onclick="sendQuickOption('${escapeHtml(o.label)}')">${o.icon || ''} ${escapeHtml(o.label)}</button>`;
+        });
+        bubble += `</div>`;
+      }
+
+      bubble += `</div>`;
+
+      container.innerHTML += `
+        <div class="fk-msg assistant">
+          <div class="fk-msg-avatar">F</div>
+          ${bubble}
+        </div>
+      `;
+    }
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const container = document.getElementById('messages');
+  container.innerHTML += `
+    <div class="fk-msg assistant" id="typing-indicator">
+      <div class="fk-msg-avatar">F</div>
+      <div class="fk-msg-bubble">
+        <div class="fk-typing">
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+// ================================================================
+// ENVOI MESSAGE
+// ================================================================
+function handleKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendSuggestion(btn) {
+  const text = btn.querySelector('.fk-suggestion-title').textContent + ' — ' + btn.querySelector('.fk-suggestion-desc').textContent;
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+function sendQuickOption(label) {
+  document.getElementById('user-input').value = label;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const ta = document.getElementById('user-input');
+  const text = ta.value.trim();
+  if (!text) return;
+
+  // Reset welcome si premier message
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // Ajout message user
+  state.conversation.push({ role: 'user', content: text });
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  renderMessages();
+  showTypingIndicator();
+
+  // Désactiver bouton envoi
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const apiMessages = state.conversation.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: state.agent,
+        messages: apiMessages
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    removeTypingIndicator();
+
+    // Stockage réponse complète dans le message
+    state.conversation.push({
+      role: 'assistant',
+      content: data.message || '',
+      _fabienData: data
+    });
+
+    renderMessages();
+    saveCurrentConversation();
+    updateActionsState();
+
+  } catch (err) {
+    removeTypingIndicator();
+    state.conversation.push({
+      role: 'assistant',
+      content: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu`,
+      _fabienData: { message: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu` }
+    });
+    renderMessages();
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function saveCurrentConversation() {
+  if (state.conversation.length === 0) return;
+
+  if (!state.conversationId) {
+    state.conversationId = 'conv_' + Date.now();
+  }
+
+  const firstUserMsg = state.conversation.find(m => m.role === 'user');
+  const title = firstUserMsg ? firstUserMsg.content.substring(0, 50) : 'Conversation';
+
+  const existing = state.conversations.findIndex(c => c.id === state.conversationId);
+  const convData = {
+    id: state.conversationId,
+    title,
+    messages: state.conversation,
+    agent: state.agent,
+    updatedAt: Date.now()
+  };
+
+  if (existing >= 0) {
+    state.conversations[existing] = convData;
+  } else {
+    state.conversations.push(convData);
+  }
+
+  saveToStorage();
+  renderHistory();
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+function updateActionsState() {
+  const hasMsg = state.conversation.length >= 2;
+  document.getElementById('action-recap').disabled = !hasMsg;
+  document.getElementById('action-guide').disabled = !hasMsg;
+}
+
+function exportConversation() {
+  const text = state.conversation.map(m => {
+    const role = m.role === 'user' ? '— VOUS —' : '— FABIEN —';
+    const content = typeof m.content === 'string' ? m.content : (m._fabienData?.message || '');
+    return `${role}\n${content}\n`;
+  }).join('\n');
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fabien-conversation-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function requestDevis() {
+  const subject = encodeURIComponent('Demande de devis FAIREKO depuis Fabien');
+  const body = encodeURIComponent('Bonjour,\n\nSuite à ma conversation avec Fabien, je souhaite recevoir un devis pour les produits suivants :\n\n[liste à compléter]\n\nMerci.');
+  window.location.href = `mailto:hello@nbsdistribution.eu?subject=${subject}&body=${body}`;
+}
+
+// ================================================================
+// VOIX (Web Speech API native)
+// ================================================================
+let recognition = null;
+let isRecording = false;
+
+function toggleVoiceInput() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('La dictée vocale n\'est pas supportée par votre navigateur.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  const ta = document.getElementById('user-input');
+  const btn = document.getElementById('voice-btn');
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.style.color = 'var(--fk-danger)';
+  };
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(r => r[0].transcript)
+      .join('');
+    ta.value = transcript;
+    ta.dispatchEvent(new Event('input'));
+  };
+  recognition.onerror = () => { isRecording = false; btn.style.color = ''; };
+  recognition.onend = () => { isRecording = false; btn.style.color = ''; };
+
+  recognition.start();
+}
+</script>
+
+</body>
+</html>
