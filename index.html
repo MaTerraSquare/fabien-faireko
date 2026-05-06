@@ -1,1432 +1,1518 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Fabien — Conseiller technique FAIRĒKO</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Fabien — l'IA construction bas carbone et biosourcée FAIRĒKO" />
+<title>Fabien — L'IA construction bas carbone et biosourcée</title>
 
+<link rel="icon" type="image/png" href="/favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 
 <style>
-  :root {
-    --green-deep:    #1a2e1a;
-    --green-mid:     #2d5a2d;
-    --green-soft:    #4a7a4a;
-    --cream:         #f5f1e8;
-    --cream-light:   #faf7f0;
-    --sand:          #c8b896;
-    --sand-deep:     #8a7a5c;
-    --paper:         #fdfbf6;
-    --ink:           #1a1a1a;
-    --ink-soft:      #4a4a4a;
-    --line:          #e5dfd0;
-    --line-soft:     #f0ebd9;
-    --rust:          #b85c2c;
-    --moss:          #6b7d4a;
-  }
+/* ================================================================
+   TOKENS DE DESIGN FAIREKO
+   ================================================================ */
+:root {
+  --fk-vert-fonce: #2d4a2b;
+  --fk-vert-mousse: #5a7548;
+  --fk-vert-sauge: #8ba888;
+  --fk-creme: #f5f1e8;
+  --fk-blanc-casse: #fafaf7;
+  --fk-terre: #b08968;
+  --fk-bois: #8b6f47;
+  --fk-pierre: #d4cfc4;
+  --fk-charbon: #1a1a17;
+  --fk-gris-doux: #6b6b66;
+  --fk-bordure: #e8e3d6;
+  --fk-success: #4a7c4a;
+  --fk-danger: #a83838;
 
-  html, body {
-    background: var(--paper);
-    color: var(--ink);
-    font-family: 'DM Sans', -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
+  --fk-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --fk-font-serif: "Playfair Display", Georgia, serif;
 
-  .font-display { font-family: 'Playfair Display', serif; }
-  .font-mono    { font-family: 'DM Mono', monospace; }
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --sp-12: 48px;
 
-  /* Subtle paper grain */
-  body::before {
-    content: '';
-    position: fixed; inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    background-image:
-      radial-gradient(circle at 20% 30%, rgba(200,184,150,0.08) 0%, transparent 40%),
-      radial-gradient(circle at 80% 70%, rgba(74,122,74,0.04) 0%, transparent 50%);
-  }
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
 
-  /* Grain overlay */
-  .grain::after {
-    content: '';
-    position: absolute; inset: 0;
-    pointer-events: none;
-    opacity: 0.04;
-    mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
+  --shadow-sm: 0 1px 2px rgba(26,26,23,0.05);
+  --shadow-md: 0 2px 8px rgba(26,26,23,0.08);
+  --shadow-lg: 0 8px 24px rgba(26,26,23,0.12);
 
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 8px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--sand-deep); }
+  --tr-fast: 150ms ease;
+  --tr-normal: 250ms ease;
+}
 
-  /* Animations */
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  @keyframes pulseGreen {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(45,90,45,0.4); }
-    50%      { box-shadow: 0 0 0 10px rgba(45,90,45,0); }
-  }
-  @keyframes typewriterDot {
-    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-    30%           { transform: translateY(-3px); opacity: 1; }
-  }
-  @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  .anim-fade-up    { animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
-  .anim-pulse      { animation: pulseGreen 2s ease-in-out infinite; }
+html, body {
+  height: 100%;
+  font-family: var(--fk-font-sans);
+  color: var(--fk-charbon);
+  background: var(--fk-blanc-casse);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
 
-  /* Markdown-ish styling for messages */
-  .msg-content strong { font-weight: 600; color: var(--green-deep); }
-  .msg-content em     { font-style: italic; color: var(--ink-soft); }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; font-size: inherit; }
+a { color: inherit; text-decoration: none; }
 
-  /* Button hover lift */
-  .btn-hover {
-    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-  }
-  .btn-hover:hover {
-    transform: translateY(-1px);
-  }
-  .btn-hover:active {
-    transform: translateY(0);
-  }
+/* ================================================================
+   TOPBAR
+   ================================================================ */
+.fk-topbar {
+  height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-5);
+  font-size: 13px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.fk-topbar-back {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-creme);
+  transition: opacity var(--tr-fast);
+}
+.fk-topbar-back:hover { opacity: 0.8; }
+.fk-topbar-spacer { flex: 1; }
+.fk-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  opacity: 0.8;
+}
+.fk-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #7fb87f;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
 
-  /* Quick option chip */
-  .chip-option {
-    background: var(--cream-light);
-    border: 1px solid var(--line);
-    transition: all 0.2s ease;
-  }
-  .chip-option:hover {
-    background: var(--green-deep);
-    color: var(--cream-light);
-    border-color: var(--green-deep);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(26,46,26,0.15);
-  }
-  .chip-option:hover .chip-icon {
-    transform: scale(1.1);
-  }
-  .chip-icon {
-    transition: transform 0.2s ease;
-  }
+/* ================================================================
+   LAYOUT PRINCIPAL
+   ================================================================ */
+.fk-app {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  height: calc(100vh - 36px);
+  width: 100vw;
+}
 
-  /* Action button */
-  .action-btn {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    transition: all 0.2s ease;
-  }
-  .action-btn:not(:disabled):hover {
-    background: var(--green-deep);
-    color: var(--cream-light);
-    border-color: var(--green-deep);
-  }
-  .action-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
+/* ================================================================
+   SIDEBAR GAUCHE
+   ================================================================ */
+.fk-sidebar-left {
+  background: var(--fk-creme);
+  border-right: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fk-brand {
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--fk-bordure);
+}
+.fk-brand-logo {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.fk-brand-name {
+  font-family: var(--fk-font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+}
+.fk-brand-tagline {
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  margin-top: 1px;
+  line-height: 1.2;
+}
+.fk-new-chat {
+  margin: var(--sp-4) var(--sp-4) var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+}
+.fk-new-chat:hover { background: var(--fk-charbon); }
 
-  /* Product card */
-  .product-card {
-    background: var(--cream-light);
-    border: 1px solid var(--line);
-    transition: all 0.25s ease;
-  }
-  .product-card:hover {
-    border-color: var(--green-soft);
-    box-shadow: 0 8px 24px rgba(26,46,26,0.08);
-    transform: translateY(-2px);
-  }
+.fk-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
+}
 
-  /* Mic button states */
-  .mic-recording {
-    background: var(--rust) !important;
-    color: var(--cream-light) !important;
-    animation: pulseGreen 1.2s infinite;
-  }
+/* PROJETS DÉPLIABLES */
+.fk-projects-block { margin-bottom: var(--sp-3); }
+.fk-projects-toggle {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-3);
+  background: transparent;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--tr-fast);
+}
+.fk-projects-toggle:hover { background: rgba(45,74,43,0.08); }
+.fk-projects-icon {
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-projects-label { flex: 1; text-align: left; }
+.fk-projects-count {
+  font-size: 11px;
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.fk-projects-chevron {
+  width: 16px; height: 16px;
+  color: var(--fk-gris-doux);
+  transition: transform var(--tr-normal);
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-chevron { transform: rotate(90deg); }
+.fk-projects-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-list { max-height: 500px; }
+.fk-projects-list-inner {
+  padding: var(--sp-1) 0 var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fk-project-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--fk-charbon);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-3);
+  border-left: 2px solid var(--fk-bordure);
+  padding-left: var(--sp-3);
+}
+.fk-project-item:hover {
+  background: rgba(176,137,104,0.12);
+  border-left-color: var(--fk-terre);
+}
+.fk-project-item.active {
+  background: rgba(176,137,104,0.18);
+  border-left-color: var(--fk-terre);
+  font-weight: 500;
+}
+.fk-project-emoji { font-size: 14px; flex-shrink: 0; }
+.fk-project-text {
+  flex: 1; min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-project-conv-count {
+  font-size: 10px;
+  color: var(--fk-gris-doux);
+  flex-shrink: 0;
+}
+.fk-project-new {
+  margin: var(--sp-2) var(--sp-3) 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: 1.5px dashed var(--fk-pierre);
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--tr-fast);
+}
+.fk-project-new:hover {
+  border-color: var(--fk-vert-mousse);
+  color: var(--fk-vert-fonce);
+  background: white;
+}
 
-  /* Decorative top bar */
-  .deco-line {
-    background: linear-gradient(90deg,
-      transparent 0%,
-      var(--sand) 20%,
-      var(--green-deep) 50%,
-      var(--sand) 80%,
-      transparent 100%
-    );
-    height: 1px;
-  }
+/* HISTORIQUE */
+.fk-history-section { margin-top: var(--sp-3); }
+.fk-history-label {
+  padding: 0 var(--sp-3) var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fk-history-empty {
+  padding: var(--sp-3);
+  font-size: 12px;
+  color: var(--fk-gris-doux);
+  font-style: italic;
+}
+.fk-history-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.fk-history-item:hover { background: rgba(45,74,43,0.08); }
+.fk-history-item.active {
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  font-weight: 500;
+}
+.fk-history-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
-  /* Loading shimmer */
-  .shimmer {
-    background: linear-gradient(90deg,
-      var(--cream-light) 0%,
-      var(--cream) 50%,
-      var(--cream-light) 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.5s linear infinite;
-  }
+/* PIED SIDEBAR */
+.fk-sidebar-footer {
+  border-top: 1px solid var(--fk-bordure);
+  padding: var(--sp-3);
+}
+.fk-help-link {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 13px;
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+  cursor: pointer;
+}
+.fk-help-link:hover {
+  background: rgba(45,74,43,0.06);
+  color: var(--fk-vert-fonce);
+}
 
-  /* Typing dots */
-  .typing-dot {
-    width: 6px; height: 6px;
-    background: var(--green-mid);
-    border-radius: 50%;
-    display: inline-block;
-    margin: 0 1px;
-    animation: typewriterDot 1.4s infinite;
-  }
-  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+/* ================================================================
+   ZONE CENTRALE — CHAT
+   ================================================================ */
+.fk-main {
+  display: flex;
+  flex-direction: column;
+  background: var(--fk-blanc-casse);
+  overflow: hidden;
+  position: relative;
+}
+.fk-chat-header {
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--fk-bordure);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--fk-blanc-casse);
+}
+.fk-current-agent { display: flex; align-items: center; gap: var(--sp-3); }
+.fk-current-agent-icon {
+  width: 28px; height: 28px;
+  background: var(--fk-vert-mousse);
+  border-radius: var(--r-sm);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.fk-current-agent-name { font-weight: 600; color: var(--fk-vert-fonce); }
+.fk-current-agent-sub { font-size: 12px; color: var(--fk-gris-doux); }
+.fk-chat-actions { display: flex; gap: var(--sp-2); }
+.fk-icon-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-icon-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
 
-  /* Modal */
-  .modal-backdrop {
-    background: rgba(26,46,26,0.4);
-    backdrop-filter: blur(4px);
-  }
+.fk-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-6) 0;
+}
 
-  /* Page dédiée Fabien — pleine viewport */
-  html, body {
-    height: 100%;
-    overflow: hidden; /* la conversation gère son propre scroll */
-  }
-  .fabien-page {
-    height: 100vh;
-    width: 100vw;
-    display: flex;
-    flex-direction: column;
-    background: var(--paper);
-    position: relative;
-  }
-  .fabien-page-main {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    width: 100%;
-  }
-  .fabien-page-content {
-    max-width: 880px;
-    margin: 0 auto;
-    padding: 24px 24px 12px;
-  }
-  .fabien-page-footer {
-    flex-shrink: 0;
-    border-top: 1px solid var(--line-soft);
-    background: var(--paper);
-    padding: 14px 24px 18px;
-  }
-  .fabien-page-footer-inner {
-    max-width: 880px;
-    margin: 0 auto;
-  }
+/* ACCUEIL */
+.fk-welcome {
+  max-width: 760px;
+  margin: var(--sp-10) auto var(--sp-6);
+  padding: 0 var(--sp-6);
+  text-align: center;
+}
+.fk-welcome-title {
+  font-family: var(--fk-font-serif);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--sp-3);
+}
+.fk-welcome-subtitle {
+  font-size: 16px;
+  color: var(--fk-gris-doux);
+  max-width: 540px;
+  margin: 0 auto var(--sp-8);
+  line-height: 1.6;
+}
+.fk-suggestions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  max-width: 680px;
+  margin: 0 auto;
+}
+.fk-suggestion {
+  padding: var(--sp-4);
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: all var(--tr-fast);
+  cursor: pointer;
+}
+.fk-suggestion:hover {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-creme);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.fk-suggestion-icon { font-size: 20px; margin-bottom: var(--sp-2); }
+.fk-suggestion-title { font-size: 14px; font-weight: 600; color: var(--fk-vert-fonce); margin-bottom: 2px; }
+.fk-suggestion-desc { font-size: 13px; color: var(--fk-gris-doux); line-height: 1.4; }
 
-  /* Mobile */
-  @media (max-width: 768px) {
-    .fabien-page-content {
-      padding: 16px 16px 10px;
-    }
-    .fabien-page-footer {
-      padding: 12px 16px 14px;
-    }
-  }
+/* MESSAGES */
+.fk-msg {
+  max-width: 760px;
+  margin: 0 auto var(--sp-5);
+  padding: 0 var(--sp-6);
+  display: flex;
+  gap: var(--sp-3);
+}
+.fk-msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+.fk-msg.user .fk-msg-avatar {
+  background: var(--fk-terre);
+  color: white;
+}
+.fk-msg.assistant .fk-msg-avatar {
+  background: var(--fk-vert-mousse);
+  color: var(--fk-creme);
+}
+.fk-msg-bubble {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  font-size: 14.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.fk-msg.user .fk-msg-bubble {
+  background: var(--fk-creme);
+  border-color: transparent;
+}
 
-  /* Tableau devis système */
-  .systeme-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 0.8rem;
-  }
-  .systeme-table th {
-    background: var(--green-deep);
-    color: var(--cream-light);
-    font-family: 'Playfair Display', serif;
-    font-weight: 500;
-    padding: 8px 10px;
-    text-align: left;
-    font-size: 0.75rem;
-    letter-spacing: 0.04em;
-  }
-  .systeme-table th:first-child { border-top-left-radius: 6px; }
-  .systeme-table th:last-child  { border-top-right-radius: 6px; }
-  .systeme-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--line-soft);
-    vertical-align: top;
-  }
-  .systeme-table tbody tr:nth-child(odd) td {
-    background: var(--cream-light);
-  }
-  .systeme-table tbody tr:hover td {
-    background: var(--cream);
-  }
-  .systeme-table .role-badge {
-    display: inline-block;
-    width: 22px; height: 22px;
-    border-radius: 50%;
-    background: var(--green-deep);
-    color: var(--cream-light);
-    text-align: center;
-    line-height: 22px;
-    font-size: 0.7rem;
-    font-weight: 600;
-    margin-right: 6px;
-  }
-  .systeme-table tfoot td {
-    background: var(--green-deep);
-    color: var(--cream-light);
-    font-weight: 600;
-    border: none;
-  }
-  .systeme-table tfoot td:first-child { border-bottom-left-radius: 6px; }
-  .systeme-table tfoot td:last-child  { border-bottom-right-radius: 6px; }
-  .systeme-table .product-link {
-    color: var(--green-deep);
-    text-decoration: underline;
-    text-decoration-color: var(--sand);
-    text-underline-offset: 2px;
-    font-weight: 500;
-  }
-  .systeme-table .product-link:hover {
-    color: var(--green-mid);
-  }
-  .systeme-table .conso-cell {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    text-align: right;
-    white-space: nowrap;
-  }
-  .systeme-table .note-cell {
-    font-size: 0.7rem;
-    color: var(--ink-soft);
-    font-style: italic;
-  }
+/* QUICK OPTIONS */
+.fk-quick-options {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-quick-question {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fk-vert-fonce);
+  margin-bottom: var(--sp-2);
+  width: 100%;
+}
+.fk-quick-btn {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-creme);
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--fk-charbon);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: all var(--tr-fast);
+}
+.fk-quick-btn:hover {
+  background: white;
+  border-color: var(--fk-vert-mousse);
+  transform: translateY(-1px);
+}
 
-  /* Surface calculator inputs */
-  .surface-input {
-    background: var(--paper);
-    border: 1px solid var(--line);
-    font-variant-numeric: tabular-nums;
-  }
-  .surface-input:focus {
-    outline: none;
-    border-color: var(--green-mid);
-    box-shadow: 0 0 0 3px rgba(45,90,45,0.1);
-  }
+/* PRODUITS */
+.fk-products {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-product-card {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
 
-  /* Badge */
-  .badge {
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+/* INDICATEUR FRAPPE */
+.fk-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--sp-2) 0;
+}
+.fk-typing-dot {
+  width: 7px; height: 7px;
+  background: var(--fk-vert-mousse);
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out;
+}
+.fk-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.fk-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ================================================================
+   BARRE DE SAISIE + FABIEN
+   ================================================================ */
+.fk-input-zone {
+  padding: var(--sp-3) var(--sp-6) var(--sp-4);
+  background: var(--fk-blanc-casse);
+  position: relative;
+}
+.fk-input-container {
+  max-width: 760px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+.fk-input-box {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.fk-input-box:focus-within {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: 0 0 0 3px rgba(90,117,72,0.12);
+}
+.fk-input-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 200px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fk-charbon);
+  background: transparent;
+  padding: var(--sp-2) var(--sp-1);
+}
+.fk-input-textarea::placeholder { color: var(--fk-gris-doux); }
+.fk-input-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--fk-bordure);
+}
+.fk-input-tools { display: flex; gap: var(--sp-1); }
+.fk-tool-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tr-fast);
+}
+.fk-tool-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
+.fk-send-btn {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-send-btn:hover { background: var(--fk-charbon); }
+.fk-send-btn:disabled { background: var(--fk-pierre); cursor: not-allowed; }
+
+/* FABIEN À DROITE BARRE */
+.fk-fabien-anchor {
+  width: 110px;
+  height: 160px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.fk-fabien-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(45,74,43,0.15));
+  animation: fabien-idle 4s ease-in-out infinite;
+}
+@keyframes fabien-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.fk-fabien-placeholder {
+  width: 100px;
+  height: 150px;
+  background: linear-gradient(180deg, var(--fk-vert-sauge) 0%, var(--fk-vert-mousse) 100%);
+  border-radius: 50% 50% 20% 20%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* DISCLAIMER */
+.fk-disclaimer-zone {
+  text-align: center;
+  margin-top: var(--sp-2);
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  line-height: 1.5;
+}
+.fk-disclaimer-zone a {
+  color: var(--fk-gris-doux);
+  text-decoration: underline;
+  text-decoration-color: var(--fk-pierre);
+  text-underline-offset: 2px;
+}
+.fk-disclaimer-zone a:hover { color: var(--fk-vert-fonce); }
+.fk-disclaimer-sep { margin: 0 var(--sp-2); opacity: 0.4; }
+
+/* ================================================================
+   SIDEBAR DROITE — AGENTS + ACTIONS
+   ================================================================ */
+.fk-sidebar-right {
+  background: var(--fk-creme);
+  border-left: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-4);
+  gap: var(--sp-5);
+}
+.fk-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--sp-3);
+  padding: 0 var(--sp-2);
+}
+.fk-agents { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-agent-card {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  cursor: pointer;
+  transition: all var(--tr-fast);
+  position: relative;
+}
+.fk-agent-card:hover {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.fk-agent-card.active {
+  border-color: var(--fk-vert-fonce);
+  background: white;
+  box-shadow: 0 0 0 2px var(--fk-vert-fonce);
+}
+.fk-agent-card.active::after {
+  content: '✓';
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 18px; height: 18px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.fk-agent-header { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.fk-agent-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.fk-agent-icon.expert { background: rgba(45,74,43,0.12); }
+.fk-agent-icon.chantier { background: rgba(176,137,104,0.18); }
+.fk-agent-icon.devis { background: rgba(139,168,136,0.25); }
+.fk-agent-name { font-weight: 600; font-size: 14px; color: var(--fk-vert-fonce); }
+.fk-agent-desc { font-size: 12px; color: var(--fk-gris-doux); line-height: 1.4; }
+
+/* ACTIONS */
+.fk-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-action-btn {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  transition: all var(--tr-fast);
+  text-align: left;
+  width: 100%;
+}
+.fk-action-btn:hover:not(:disabled) {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-blanc-casse);
+  transform: translateY(-1px);
+}
+.fk-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fk-action-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-action-content { flex: 1; }
+.fk-action-label { font-size: 13px; font-weight: 600; color: var(--fk-charbon); }
+.fk-action-desc { font-size: 11px; color: var(--fk-gris-doux); margin-top: 1px; }
+
+.fk-mail-link {
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 13px;
+  font-weight: 500;
+  justify-content: center;
+  transition: background var(--tr-fast);
+  margin-top: auto;
+}
+.fk-mail-link:hover { background: var(--fk-charbon); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fk-pierre); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fk-gris-doux); }
+
+.ico { width: 18px; height: 18px; stroke-width: 1.8; }
+.ico-sm { width: 14px; height: 14px; stroke-width: 1.8; }
+
+@media (max-width: 1280px) {
+  .fk-app { grid-template-columns: 240px 1fr 300px; }
+  .fk-fabien-anchor { width: 90px; height: 140px; }
+}
+@media (max-width: 1024px) {
+  .fk-app { grid-template-columns: 0 1fr 0; }
+  .fk-sidebar-left, .fk-sidebar-right { display: none; }
+  .fk-fabien-anchor { display: none; }
+}
 </style>
 </head>
+<body>
 
-<body class="min-h-screen">
-
-<div id="root"></div>
-
-<script type="text/babel" data-presets="env,react">
-const { useState, useEffect, useRef, useCallback } = React;
-
-// ========================================================================
-// CONFIG
-// ========================================================================
-
-const API_ENDPOINT = '/api/fabien-v2';
-const STORAGE_KEY  = 'fabien_v4_conversation';
-const FAIREKO_PHONE = 'hello@nbsdistribution.eu';
-const FAIREKO_SHOP  = 'https://www.faireko.be/shop';
-const ODOO_BASE_URL = 'https://www.faireko.be';
-
-// Hardcoded URLs Odoo for the products we know (fallback if backend doesn't provide website_url)
-const PRODUCT_URLS = {
-  759:  '/shop/cc-m-rest-restaura-nhl-35-759',
-  760:  '/shop/cc-m-rest-s-restaura-s-nhl-35-760',
-  761:  '/shop/cc-m-bas-base-nhl-5-761',
-  762:  '/shop/cc-m-ad-adherecal-nhl-5-ite-762',
-  763:  '/shop/cc-m-hum-humical-763',
-  764:  '/shop/cc-l-nhl35-chaux-hydraulique-nhl-35-764',
-  768:  '/shop/cc-l-cl9osp-cl90-sp-768',
-  1918: '/shop/cc-m-therm-thermcal-10kg-1918',
-  9276: '/shop/limewash-9276',
-  9465: '/shop/genr-sable-sable-05-generique-9465',
-  9471: '/shop/gordillos-cal-en-pasta-envejecida-cl-90-spl-9471',
-};
-
-const productUrl = (id) => {
-  const path = PRODUCT_URLS[id] || `/shop?search=${id}`;
-  return `${ODOO_BASE_URL}${path}`;
-};
-
-// Default actions when backend doesn't provide them yet
-const DEFAULT_ACTIONS = [
-  { id: 'guide',  label: 'Guide de mise en œuvre', icon: '📘', enabled: false },
-  { id: 'recap',  label: 'Récapitulatif',          icon: '📋', enabled: false },
-  { id: 'panier', label: 'Panier',                 icon: '🛒', enabled: false },
-  { id: 'expert', label: 'Appeler un expert',      icon: '📞', enabled: true  },
-];
-
-// ========================================================================
-// UTILITIES
-// ========================================================================
-
-const formatMessage = (text) => {
-  if (!text) return '';
-  // Bold **text**
-  let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  // Italic *text*
-  html = html.replace(/(?<!\*)\*([^\*]+)\*(?!\*)/g, '<em>$1</em>');
-  // Newlines
-  html = html.replace(/\n/g, '<br/>');
-  return html;
-};
-
-const loadConversation = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
-  } catch { return null; }
-};
-
-const saveConversation = (data) => {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
-};
-
-// ========================================================================
-// COMPONENTS
-// ========================================================================
-
-const Header = ({ onReset, onCalculator }) => (
-  <header className="relative flex-shrink-0" style={{background:'var(--paper)'}}>
-    <div className="deco-line"></div>
-    <div className="px-6 sm:px-8 py-4 flex items-center justify-between max-w-5xl mx-auto w-full">
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center font-display text-2xl font-semibold"
-               style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-            F
-          </div>
-          <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-                style={{background:'var(--moss)', borderColor:'var(--paper)'}}></span>
-        </div>
-        <div>
-          <h1 className="font-display text-xl sm:text-2xl leading-none" style={{color:'var(--green-deep)'}}>
-            Fabien
-          </h1>
-          <p className="text-xs sm:text-sm mt-1" style={{color:'var(--ink-soft)'}}>
-            Conseiller technique FAIRĒKO · <span className="badge" style={{color:'var(--rust)'}}>BETA</span>
-          </p>
-        </div>
-      </div>
-      <div className="flex items-center gap-2">
-        <button onClick={onCalculator}
-                className="action-btn btn-hover px-3 py-2 rounded-md text-sm flex items-center gap-1.5"
-                title="Calculatrice m²">
-          <span>📐</span>
-          <span className="hidden sm:inline">Surface m²</span>
-        </button>
-        <button onClick={onReset}
-                className="action-btn btn-hover px-3 py-2 rounded-md text-sm flex items-center gap-1.5"
-                title="Nouvelle conversation">
-          <span>↻</span>
-          <span className="hidden sm:inline">Nouvelle</span>
-        </button>
-      </div>
-    </div>
-    <div className="deco-line"></div>
-  </header>
-);
-
-const BetaBanner = () => (
-  <div className="px-6 sm:px-8 pt-4 max-w-5xl mx-auto w-full flex-shrink-0">
-    <div className="text-xs sm:text-sm leading-relaxed p-3 rounded-md flex gap-2"
-         style={{background:'var(--cream-light)', color:'var(--ink-soft)', border:'1px solid var(--line-soft)'}}>
-      <span className="text-base leading-none">⚠️</span>
-      <span>
-        Fabien est en version BETA. Ses recommandations sont indicatives et doivent être validées
-        par un professionnel avant tout chantier. Pour toute question critique :{' '}
-        <a href={`mailto:${FAIREKO_PHONE}`} className="font-medium underline decoration-dotted"
-           style={{color:'var(--green-deep)'}}>
-          {FAIREKO_PHONE}
-        </a>
-      </span>
-    </div>
+<!-- TOPBAR -->
+<div class="fk-topbar">
+  <a href="https://www.faireko.be" class="fk-topbar-back">
+    <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Retour à FAIREKO.be
+  </a>
+  <div class="fk-topbar-spacer"></div>
+  <div class="fk-topbar-status">
+    <span class="fk-status-dot"></span>
+    <span id="status-text">Fabien · Connecté</span>
   </div>
-);
+</div>
 
-const Welcome = ({ onStart }) => {
-  const starters = [
-    { icon:'🧱', label:'Enduire un mur extérieur à la chaux',  hint:'Système 3 couches, choix produits' },
-    { icon:'💧', label:'Traiter un mur humide avec salpêtre',   hint:'Diagnostic + assainissement' },
-    { icon:'🌿', label:'Isoler par l\'extérieur en biosourcé',   hint:'ETICS chanvre, fibre bois, liège' },
-    { icon:'🏛️', label:'Rénover un bâti ancien en moellons',     hint:'Patrimoine wallon' },
-  ];
-  return (
-    <div className="max-w-2xl mx-auto px-2 py-8 sm:py-12 text-center anim-fade-up">
-      <div className="inline-block mb-5 px-4 py-1.5 rounded-full text-xs font-medium"
-           style={{background:'var(--cream)', color:'var(--green-deep)', letterSpacing:'0.05em'}}>
-        ÉCO-CONSTRUCTION · WALLONIE & BRUXELLES
-      </div>
-      <h2 className="font-display text-3xl sm:text-4xl md:text-5xl leading-tight mb-4"
-          style={{color:'var(--green-deep)'}}>
-        Salut, je suis <em>Fabien</em>.
-      </h2>
-      <p className="font-display italic text-base sm:text-lg md:text-xl mb-8 max-w-xl mx-auto"
-         style={{color:'var(--ink-soft)'}}>
-        Ancien chef de chantier, je connais le bâti ancien wallon
-        et les matériaux biosourcés sur le bout des doigts.
-      </p>
-      <p className="text-sm mb-5" style={{color:'var(--ink-soft)'}}>
-        Décris ton chantier ou choisis un sujet pour commencer&nbsp;:
-      </p>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {starters.map((s, i) => (
-          <button key={i}
-                  onClick={() => onStart(s.label)}
-                  className="chip-option btn-hover px-4 py-4 rounded-xl text-left flex items-start gap-3 text-sm">
-            <span className="chip-icon text-2xl flex-shrink-0">{s.icon}</span>
-            <span className="flex-1">
-              <span className="block font-medium leading-snug">{s.label}</span>
-              <span className="block text-xs mt-0.5 opacity-70">{s.hint}</span>
-            </span>
-          </button>
-        ))}
-      </div>
-      <p className="text-xs mt-8 italic" style={{color:'var(--ink-soft)'}}>
-        Ou tape directement ta question dans la zone ci-dessous.
-      </p>
-    </div>
-  );
-};
+<div class="fk-app">
 
-const UserMessage = ({ text }) => (
-  <div className="anim-fade-up flex justify-end mb-4">
-    <div className="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-sm text-sm leading-relaxed"
-         style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-      {text}
-    </div>
-  </div>
-);
-
-const ProductCard = ({ product, onAdd }) => (
-  <div className="product-card rounded-lg p-3 flex items-start gap-3">
-    <div className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center text-lg"
-         style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-      🛍️
-    </div>
-    <div className="flex-1 min-w-0">
-      <a href={productUrl(product.id)} target="_blank" rel="noopener"
-         className="text-sm font-semibold leading-tight hover:underline" style={{color:'var(--green-deep)'}}>
-        {product.name}
-      </a>
-      <div className="text-xs mt-1 font-mono" style={{color:'var(--ink-soft)'}}>
-        ID #{product.id}
+  <!-- SIDEBAR GAUCHE -->
+  <aside class="fk-sidebar-left">
+    <div class="fk-brand">
+      <div class="fk-brand-logo">F</div>
+      <div>
+        <div class="fk-brand-name">Fabien</div>
+        <div class="fk-brand-tagline">L'IA construction bas carbone et biosourcée</div>
       </div>
     </div>
-    <a href={productUrl(product.id)} target="_blank" rel="noopener"
-       className="text-xs px-2.5 py-1 rounded font-medium btn-hover whitespace-nowrap"
-       style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-      Voir →
-    </a>
-  </div>
-);
 
-// ========================================================================
-// SystemeTable — tableau type devis avec couches stratifiées
-// ========================================================================
+    <button class="fk-new-chat" onclick="startNewConversation()">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouvelle conversation
+    </button>
 
-const SystemeTable = ({ systeme, surface, onSurfaceChange, onCalculator }) => {
-  if (!systeme || !systeme.couches || systeme.couches.length === 0) return null;
-  const m2 = parseFloat(surface) || 0;
+    <div class="fk-sidebar-scroll">
 
-  // Total kg / L par produit (pour totaux)
-  const totalLine = (couche) => {
-    return (couche.products || []).map(p => ({
-      product: p,
-      qty: m2 * (p.conso_value || 0),
-    }));
-  };
-
-  return (
-    <div className="mt-4 pt-3 border-t" style={{borderColor:'var(--line-soft)'}}>
-      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
-        <div>
-          <div className="font-display text-base" style={{color:'var(--green-deep)'}}>
-            Système recommandé
-          </div>
-          {systeme.support && (
-            <div className="text-xs mt-0.5" style={{color:'var(--ink-soft)'}}>
-              Support : <span className="font-medium">{systeme.support}</span>
-              {systeme.logique && <span> · Logique <em>{systeme.logique.replace('_',' ')}</em></span>}
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs" style={{color:'var(--ink-soft)'}}>Surface :</label>
-          <input type="number" step="0.5" value={surface}
-                 onChange={(e) => onSurfaceChange(e.target.value)}
-                 className="surface-input rounded px-2 py-1 text-sm w-20 text-right font-mono" />
-          <span className="text-xs" style={{color:'var(--ink-soft)'}}>m²</span>
-          <button onClick={onCalculator}
-                  className="text-xs btn-hover px-2 py-1 rounded"
-                  style={{background:'var(--cream-light)', color:'var(--green-deep)', border:'1px solid var(--line)'}}
-                  title="Calculatrice détaillée par paroi">
-            📐
-          </button>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto rounded-md border" style={{borderColor:'var(--line)'}}>
-        <table className="systeme-table">
-          <thead>
-            <tr>
-              <th>Étape</th>
-              <th>Produit</th>
-              <th className="text-right">Conso</th>
-              <th className="text-right">Quantité</th>
-            </tr>
-          </thead>
-          <tbody>
-            {systeme.couches.map((couche, idx) => {
-              const lines = totalLine(couche);
-              return lines.map((line, lineIdx) => (
-                <tr key={`${idx}-${lineIdx}`}>
-                  {lineIdx === 0 && (
-                    <td rowSpan={lines.length} style={{verticalAlign:'top'}}>
-                      <span className="role-badge">{couche.ordre}</span>
-                      <span className="font-medium">{couche.role}</span>
-                      {couche.optional && <span className="badge ml-1" style={{color:'var(--rust)'}}>opt.</span>}
-                      {couche.note && <div className="note-cell mt-1">{couche.note}</div>}
-                    </td>
-                  )}
-                  <td>
-                    <a href={productUrl(line.product.id)} target="_blank" rel="noopener"
-                       className="product-link">
-                      {line.product.name}
-                    </a>
-                    <div className="text-xs font-mono" style={{color:'var(--ink-soft)'}}>
-                      ID #{line.product.id}
-                    </div>
-                    {line.product.note && (
-                      <div className="note-cell mt-1">{line.product.note}</div>
-                    )}
-                  </td>
-                  <td className="conso-cell">
-                    {line.product.conso_value} {line.product.conso_unit}
-                  </td>
-                  <td className="conso-cell font-semibold" style={{color:'var(--green-deep)'}}>
-                    {m2 > 0 ? `${(line.qty).toFixed(1)} ${(line.product.conso_unit||'').split('/')[0]}` : '—'}
-                  </td>
-                </tr>
-              ));
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {systeme.couches.some(c => c.options_finition) && (
-        <div className="mt-3 text-xs" style={{color:'var(--ink-soft)'}}>
-          <span className="font-medium">Options finition disponibles :</span>{' '}
-          {systeme.couches.find(c => c.options_finition)?.options_finition.join(' · ')}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const QuickOptions = ({ question, options, onSelect, disabled }) => {
-  if (!options || options.length === 0) return null;
-  return (
-    <div className="mt-4 pt-3 border-t" style={{borderColor:'var(--line-soft)'}}>
-      {question && (
-        <p className="text-sm font-medium mb-2.5 italic"
-           style={{color:'var(--green-mid)', fontFamily:'Playfair Display'}}>
-          {question}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-2">
-        {options.map((opt, i) => (
-          <button key={i}
-                  onClick={() => !disabled && onSelect(opt.label)}
-                  disabled={disabled}
-                  className="chip-option btn-hover px-3.5 py-2 rounded-full text-sm flex items-center gap-2 disabled:opacity-50"
-                  style={{animationDelay:`${i*60}ms`}}>
-            {opt.icon && <span className="chip-icon text-base">{opt.icon}</span>}
-            <span className="font-medium">{opt.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const AssistantMessage = ({ data, onQuickSelect, isLast, surface, onSurfaceChange, onCalculator }) => {
-  const message = data.message || '';
-  const products = data.produits_suggeres || [];
-  const systeme = data.systeme || null;
-  const quickOptions = data.quick_options || [];
-  const quickQuestion = data.quick_options_question || '';
-
-  return (
-    <div className="anim-fade-up mb-6">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-display text-sm font-semibold"
-             style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-          F
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="px-4 py-3 rounded-2xl rounded-tl-sm grain relative"
-               style={{background:'var(--paper)', border:'1px solid var(--line)'}}>
-            <div className="msg-content text-sm leading-relaxed"
-                 style={{color:'var(--ink)'}}
-                 dangerouslySetInnerHTML={{__html: formatMessage(message)}} />
-
-            {systeme ? (
-              <SystemeTable systeme={systeme}
-                            surface={surface}
-                            onSurfaceChange={onSurfaceChange}
-                            onCalculator={onCalculator} />
-            ) : products.length > 0 ? (
-              <div className="mt-4 space-y-2">
-                {products.map((p, i) => (
-                  <ProductCard key={i} product={p}
-                               onAdd={(prod) => onQuickSelect(`Détails sur ${prod.name}`)} />
-                ))}
-              </div>
-            ) : null}
-
-            {isLast && (
-              <QuickOptions question={quickQuestion}
-                            options={quickOptions}
-                            onSelect={onQuickSelect} />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ThinkingMessage = () => (
-  <div className="anim-fade-up mb-6">
-    <div className="flex items-start gap-3">
-      <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center font-display text-sm font-semibold anim-pulse"
-           style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-        F
-      </div>
-      <div className="flex-1">
-        <div className="inline-block px-4 py-3 rounded-2xl rounded-tl-sm"
-             style={{background:'var(--paper)', border:'1px solid var(--line)'}}>
-          <span className="typing-dot"></span>
-          <span className="typing-dot"></span>
-          <span className="typing-dot"></span>
-          <span className="ml-2 text-xs italic" style={{color:'var(--ink-soft)'}}>
-            Fabien réfléchit…
+      <!-- PROJETS DÉPLIABLES -->
+      <div class="fk-projects-block expanded" id="projects-block">
+        <button class="fk-projects-toggle" id="projects-toggle">
+          <span class="fk-projects-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           </span>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-const InputBar = ({ value, onChange, onSubmit, onMicToggle, recording, disabled }) => {
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSubmit();
-    }
-  };
-  return (
-    <div className="relative flex items-end gap-2 p-2 rounded-2xl"
-         style={{background:'var(--paper)', border:'1.5px solid var(--line)'}}>
-      <button onClick={onMicToggle}
-              disabled={disabled}
-              className={`btn-hover px-3 py-2.5 rounded-xl text-base flex-shrink-0 ${recording ? 'mic-recording' : ''}`}
-              style={!recording ? {background:'var(--cream-light)', color:'var(--green-deep)'} : {}}
-              title={recording ? 'Arrêter la dictée' : 'Dicter à la voix'}>
-        {recording ? '⏹' : '🎙️'}
-      </button>
-      <textarea value={value}
-                onChange={(e) => onChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={disabled}
-                placeholder={recording ? 'Parle, je t\'écoute…' : 'Écris ta question, ou choisis une option ci-dessus…'}
-                rows={1}
-                className="flex-1 resize-none bg-transparent border-0 outline-none px-2 py-2.5 text-sm leading-relaxed"
-                style={{maxHeight:'140px', color:'var(--ink)'}}
-                ref={(el) => {
-                  if (el) {
-                    el.style.height = 'auto';
-                    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
-                  }
-                }} />
-      <button onClick={onSubmit}
-              disabled={disabled || !value.trim()}
-              className="btn-hover px-4 py-2.5 rounded-xl text-sm font-medium flex-shrink-0 disabled:opacity-30"
-              style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-        ↑
-      </button>
-    </div>
-  );
-};
-
-const ActionsBar = ({ actions, onAction }) => (
-  <div className="flex flex-wrap gap-2 mt-3 justify-center">
-    {actions.map((a) => (
-      <button key={a.id}
-              onClick={() => a.enabled && onAction(a.id)}
-              disabled={!a.enabled}
-              className="action-btn btn-hover px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5">
-        <span>{a.icon}</span>
-        <span>{a.label}</span>
-      </button>
-    ))}
-  </div>
-);
-
-// ========================================================================
-// MODALS
-// ========================================================================
-
-const Modal = ({ open, onClose, title, children, size='md' }) => {
-  if (!open) return null;
-  const sizeClass = { sm:'max-w-md', md:'max-w-lg', lg:'max-w-2xl', xl:'max-w-4xl' }[size];
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop anim-fade-up"
-         onClick={onClose}>
-      <div className={`w-full ${sizeClass} rounded-xl shadow-2xl max-h-[90vh] overflow-hidden flex flex-col`}
-           style={{background:'var(--paper)', border:'1px solid var(--line)'}}
-           onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 flex items-center justify-between border-b"
-             style={{borderColor:'var(--line)'}}>
-          <h3 className="font-display text-xl" style={{color:'var(--green-deep)'}}>{title}</h3>
-          <button onClick={onClose}
-                  className="text-2xl leading-none hover:opacity-60"
-                  style={{color:'var(--ink-soft)'}}>×</button>
-        </div>
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const SurfaceCalculator = ({ open, onClose, systeme, initialSurface, onApplySurface }) => {
-  const [parois, setParois] = useState([
-    { id: 1, name: 'Façade nord',  longueur: '', hauteur: '', deduc: '' },
-    { id: 2, name: 'Façade sud',   longueur: '', hauteur: '', deduc: '' },
-  ]);
-
-  const addParoi = () => setParois([...parois, {
-    id: Date.now(), name: `Paroi ${parois.length+1}`, longueur:'', hauteur:'', deduc:''
-  }]);
-  const removeParoi = (id) => setParois(parois.filter(p => p.id !== id));
-  const updateParoi = (id, field, value) => {
-    setParois(parois.map(p => p.id === id ? {...p, [field]: value} : p));
-  };
-
-  const surfaceParoi = (p) => {
-    const L = parseFloat(p.longueur) || 0;
-    const H = parseFloat(p.hauteur) || 0;
-    const D = parseFloat(p.deduc) || 0;
-    return Math.max(0, L*H - D);
-  };
-  const total = parois.reduce((s, p) => s + surfaceParoi(p), 0);
-
-  const handleApply = () => {
-    if (onApplySurface && total > 0) {
-      onApplySurface(total.toFixed(2));
-      onClose();
-    }
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} title="Calculatrice de surface" size="lg">
-      <p className="text-sm mb-5" style={{color:'var(--ink-soft)'}}>
-        Saisis tes parois pour calculer la surface totale.
-        Utilise <em>Déduc.</em> pour soustraire les ouvertures (fenêtres, portes).
-        {systeme && ' La surface s\'appliquera ensuite au système recommandé pour calculer toutes les couches.'}
-      </p>
-
-      <div className="space-y-2 mb-5">
-        <div className="grid grid-cols-12 gap-2 px-2 text-xs font-medium uppercase tracking-wide"
-             style={{color:'var(--ink-soft)', letterSpacing:'0.08em'}}>
-          <div className="col-span-3">Paroi</div>
-          <div className="col-span-2 text-right">Long. (m)</div>
-          <div className="col-span-2 text-right">Haut. (m)</div>
-          <div className="col-span-2 text-right">Déduc. (m²)</div>
-          <div className="col-span-2 text-right">Surface</div>
-          <div className="col-span-1"></div>
-        </div>
-        {parois.map((p) => (
-          <div key={p.id} className="grid grid-cols-12 gap-2 items-center">
-            <input type="text" value={p.name}
-                   onChange={(e) => updateParoi(p.id, 'name', e.target.value)}
-                   className="col-span-3 surface-input rounded px-2 py-1.5 text-sm" />
-            <input type="number" step="0.01" value={p.longueur}
-                   onChange={(e) => updateParoi(p.id, 'longueur', e.target.value)}
-                   placeholder="0"
-                   className="col-span-2 surface-input rounded px-2 py-1.5 text-sm text-right" />
-            <input type="number" step="0.01" value={p.hauteur}
-                   onChange={(e) => updateParoi(p.id, 'hauteur', e.target.value)}
-                   placeholder="0"
-                   className="col-span-2 surface-input rounded px-2 py-1.5 text-sm text-right" />
-            <input type="number" step="0.01" value={p.deduc}
-                   onChange={(e) => updateParoi(p.id, 'deduc', e.target.value)}
-                   placeholder="0"
-                   className="col-span-2 surface-input rounded px-2 py-1.5 text-sm text-right" />
-            <div className="col-span-2 text-right text-sm font-mono font-semibold"
-                 style={{color:'var(--green-deep)'}}>
-              {surfaceParoi(p).toFixed(2)} m²
-            </div>
-            <button onClick={() => removeParoi(p.id)}
-                    className="col-span-1 text-sm hover:opacity-60"
-                    style={{color:'var(--rust)'}}>×</button>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={addParoi}
-              className="text-sm px-3 py-1.5 rounded border btn-hover"
-              style={{background:'var(--cream-light)', borderColor:'var(--line)', color:'var(--green-deep)'}}>
-        + Ajouter une paroi
-      </button>
-
-      <div className="mt-6 pt-5 border-t" style={{borderColor:'var(--line)'}}>
-        <div className="p-4 rounded-lg mb-4"
-             style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-          <div className="text-xs uppercase tracking-wide opacity-70">Surface totale</div>
-          <div className="font-display text-3xl mt-1 font-mono">{total.toFixed(2)} <span className="text-lg opacity-70">m²</span></div>
-        </div>
-
-        {/* Multi-couches calc if systeme present */}
-        {systeme && systeme.couches && total > 0 && (
-          <div className="mb-4">
-            <div className="text-xs font-medium uppercase tracking-wide mb-2"
-                 style={{color:'var(--ink-soft)', letterSpacing:'0.08em'}}>
-              Quantités par couche du système
-            </div>
-            <div className="rounded-lg overflow-hidden border" style={{borderColor:'var(--line)'}}>
-              {systeme.couches.map((couche, i) => (
-                <div key={i} className="px-3 py-2.5 border-b"
-                     style={{background: i%2===0 ? 'var(--cream-light)' : 'var(--paper)',
-                             borderColor:'var(--line-soft)'}}>
-                  <div className="flex items-center gap-2 text-xs font-medium mb-1">
-                    <span className="role-badge">{couche.ordre}</span>
-                    <span style={{color:'var(--green-deep)'}}>{couche.role}</span>
-                    {couche.optional && <span className="badge" style={{color:'var(--rust)'}}>opt.</span>}
-                  </div>
-                  {(couche.products || []).map((p, pi) => (
-                    <div key={pi} className="text-xs ml-7 flex justify-between items-center font-mono">
-                      <span style={{color:'var(--ink)'}}>{p.name}</span>
-                      <span className="font-semibold" style={{color:'var(--green-deep)'}}>
-                        {(total * (p.conso_value || 0)).toFixed(1)} {(p.conso_unit||'').split('/')[0]}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <button onClick={handleApply} disabled={total <= 0}
-                className="btn-hover w-full px-4 py-2.5 rounded-lg text-sm font-medium disabled:opacity-30"
-                style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-          Appliquer cette surface ({total.toFixed(2)} m²)
+          <span class="fk-projects-label">Mes projets</span>
+          <span class="fk-projects-count" id="projects-count">0</span>
+          <svg class="fk-projects-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
-        <p className="text-xs mt-3 italic" style={{color:'var(--ink-soft)'}}>
-          Estimations indicatives. Conso réelle dépend du produit, du support, et de l'épaisseur réelle.
-        </p>
-      </div>
-    </Modal>
-  );
-};
-
-const RecapModal = ({ open, onClose, conversation }) => {
-  const userMessages = conversation.filter(m => m.role === 'user');
-  const assistantMessages = conversation.filter(m => m.role === 'assistant');
-  const allProducts = [];
-  assistantMessages.forEach(m => {
-    if (m.data && m.data.produits_suggeres) {
-      m.data.produits_suggeres.forEach(p => {
-        if (!allProducts.find(x => x.id === p.id)) allProducts.push(p);
-      });
-    }
-  });
-
-  const handleExport = () => {
-    const date = new Date().toLocaleString('fr-BE');
-    const parts = ['# Récapitulatif chantier — Fabien FAIRĒKO', '', `Date : ${date}`, ''];
-    parts.push('## Échanges');
-    conversation.forEach(m => {
-      if (m.role === 'user') {
-        parts.push(`\n**Toi :** ${m.text}`);
-      } else if (m.role === 'assistant' && m.data) {
-        parts.push(`\n**Fabien :** ${m.data.message}`);
-      }
-    });
-    if (allProducts.length > 0) {
-      parts.push('\n## Produits évoqués');
-      allProducts.forEach(p => parts.push(`- ${p.name} (ID ${p.id})`));
-    }
-    parts.push(`\n---\nContact expert : ${FAIREKO_PHONE}`);
-
-    const blob = new Blob([parts.join('\n')], {type:'text/markdown;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `recap-fabien-${Date.now()}.md`;
-    a.click(); URL.revokeObjectURL(url);
-  };
-
-  return (
-    <Modal open={open} onClose={onClose} title="Récapitulatif" size="lg">
-      <div className="text-xs mb-4 px-3 py-2 rounded font-mono"
-           style={{background:'var(--cream-light)', color:'var(--ink-soft)'}}>
-        {userMessages.length} question(s) · {assistantMessages.length} réponse(s) · {allProducts.length} produit(s)
-      </div>
-
-      <div className="space-y-4 mb-5">
-        {conversation.map((m, i) => (
-          <div key={i} className="text-sm">
-            {m.role === 'user' ? (
-              <div className="pl-3 border-l-2" style={{borderColor:'var(--green-mid)'}}>
-                <div className="text-xs font-medium uppercase tracking-wide mb-1"
-                     style={{color:'var(--green-deep)'}}>Toi</div>
-                <div>{m.text}</div>
-              </div>
-            ) : m.data ? (
-              <div className="pl-3 border-l-2" style={{borderColor:'var(--sand)'}}>
-                <div className="text-xs font-medium uppercase tracking-wide mb-1"
-                     style={{color:'var(--sand-deep)'}}>Fabien</div>
-                <div className="msg-content"
-                     dangerouslySetInnerHTML={{__html: formatMessage(m.data.message)}} />
-              </div>
-            ) : null}
+        <div class="fk-projects-list">
+          <div class="fk-projects-list-inner" id="projects-list">
+            <button class="fk-project-new" onclick="createProject()">
+              <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nouveau projet
+            </button>
           </div>
-        ))}
+        </div>
       </div>
 
-      {allProducts.length > 0 && (
-        <div className="mb-5">
-          <h4 className="font-display text-base mb-2" style={{color:'var(--green-deep)'}}>
-            Produits évoqués
-          </h4>
-          <ul className="space-y-1.5">
-            {allProducts.map((p, i) => (
-              <li key={i} className="text-sm flex items-center gap-2">
-                <span className="font-mono text-xs" style={{color:'var(--ink-soft)'}}>#{p.id}</span>
-                <span className="font-medium">{p.name}</span>
-              </li>
-            ))}
-          </ul>
+      <!-- HISTORIQUE -->
+      <div class="fk-history-section">
+        <div class="fk-history-label">Conversations</div>
+        <div id="history-list">
+          <div class="fk-history-empty">Aucune conversation pour le moment</div>
         </div>
-      )}
+      </div>
 
-      <button onClick={handleExport}
-              className="btn-hover px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
-              style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-        <span>📥</span> Télécharger le récap (.md)
-      </button>
-    </Modal>
-  );
-};
+    </div>
 
-const ExpertModal = ({ open, onClose }) => (
-  <Modal open={open} onClose={onClose} title="Parler à un expert" size="md">
-    <p className="text-sm mb-4" style={{color:'var(--ink-soft)'}}>
-      Pour les chantiers complexes ou les questions critiques, rien ne remplace un échange humain.
-      L'équipe FAIRĒKO te répond pour la Wallonie et Bruxelles.
-    </p>
-    <a href={`mailto:${FAIREKO_PHONE}?subject=Demande de conseil chantier`}
-       className="block btn-hover p-4 rounded-lg text-center"
-       style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-      <div className="text-2xl mb-1">✉️</div>
-      <div className="font-medium">{FAIREKO_PHONE}</div>
-      <div className="text-xs opacity-80 mt-1">Réponse sous 24h ouvrées</div>
+    <div class="fk-sidebar-footer">
+      <div class="fk-help-link">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Aide & assistance
+      </div>
+    </div>
+  </aside>
+
+  <!-- ZONE CENTRALE -->
+  <main class="fk-main">
+    <header class="fk-chat-header">
+      <div class="fk-current-agent">
+        <div class="fk-current-agent-icon">⊕</div>
+        <div>
+          <div class="fk-current-agent-name" id="current-agent-name">Expert prescription</div>
+          <div class="fk-current-agent-sub" id="current-agent-sub">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+        </div>
+      </div>
+      <div class="fk-chat-actions">
+        <button class="fk-icon-btn" title="Plus d'options">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="fk-messages" id="messages">
+      <div class="fk-welcome" id="welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+        <div class="fk-suggestions">
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🧱</div>
+            <div class="fk-suggestion-title">ITI mur ancien biosourcé</div>
+            <div class="fk-suggestion-desc">Brique pleine + chanvre — quelle stratification ?</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🔥</div>
+            <div class="fk-suggestion-title">Comparer 2 isolants</div>
+            <div class="fk-suggestion-desc">PI-HEMP Wall vs fibre de bois</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🏠</div>
+            <div class="fk-suggestion-title">Enduit chaux extérieur</div>
+            <div class="fk-suggestion-desc">Stratification gobetis → corps → finition</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">💧</div>
+            <div class="fk-suggestion-title">Mur humide cave</div>
+            <div class="fk-suggestion-desc">Diagnostic + solution assainissement</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fk-input-zone">
+      <div class="fk-input-container">
+        <div class="fk-input-box">
+          <textarea
+            class="fk-input-textarea"
+            id="user-input"
+            placeholder="Posez votre question à Fabien…"
+            rows="1"
+            onkeydown="handleKeydown(event)"></textarea>
+          <div class="fk-input-toolbar">
+            <div class="fk-input-tools">
+              <button class="fk-tool-btn" title="Joindre un fichier" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Photo" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Lien" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Dictée vocale" id="voice-btn" onclick="toggleVoiceInput()">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+            </div>
+            <button class="fk-send-btn" id="send-btn" onclick="sendMessage()" title="Envoyer">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- FABIEN À DROITE -->
+        <div class="fk-fabien-anchor" id="fabien-zone">
+          <div class="fk-fabien-placeholder" id="fabien-placeholder">FABIEN</div>
+          <img class="fk-fabien-img" id="fabien-img" src="/fabien/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
+        </div>
+      </div>
+
+      <div class="fk-disclaimer-zone">
+        Fabien est un système d'IA et peut commettre des erreurs. Vérifiez les informations critiques (λ, μ, classements feu) auprès des fiches techniques officielles.
+        <br/>
+        <a href="/legal/privacy">Politique de confidentialité</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="/legal/terms">Conditions d'utilisation</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="https://www.faireko.be">faireko.be</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- SIDEBAR DROITE -->
+  <aside class="fk-sidebar-right">
+    <div>
+      <div class="fk-panel-title">Choisir un partenaire</div>
+      <div class="fk-agents">
+        <div class="fk-agent-card active" data-agent="prescription" data-name="Expert prescription" data-desc="Systèmes biosourcés et bas carbone, conformité ETA/ATG." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon expert">⊕</div>
+            <div class="fk-agent-name">Expert prescription</div>
+          </div>
+          <div class="fk-agent-desc">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="chantier" data-name="Conseil chantier" data-desc="Mise en œuvre, dosages, ordres de couches, pathologies humidité." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon chantier">🔧</div>
+            <div class="fk-agent-name">Conseil chantier</div>
+          </div>
+          <div class="fk-agent-desc">Mise en œuvre, dosages, ordres de couches, pathologies humidité.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="devis" data-name="Devis & métré" data-desc="Calcul de quantités, comparaison fournisseurs, chiffrage rapide." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon devis">📋</div>
+            <div class="fk-agent-name">Devis & métré</div>
+          </div>
+          <div class="fk-agent-desc">Calcul de quantités, comparaison fournisseurs, chiffrage rapide.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="fk-panel-title">Actions FAIREKO</div>
+      <div class="fk-actions">
+        <button class="fk-action-btn" id="action-recap" onclick="exportConversation()" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Exporter en PDF</div>
+            <div class="fk-action-desc">Toute la conversation</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-guide" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Guide de pose</div>
+            <div class="fk-action-desc">Pas-à-pas chantier</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-devis" onclick="requestDevis()">
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Devis FAIREKO</div>
+            <div class="fk-action-desc">Chiffrage des produits</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <a href="mailto:hello@nbsdistribution.eu?subject=Demande%20depuis%20Fabien" class="fk-mail-link">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contacter un humain
     </a>
-    <p className="text-xs mt-4 italic text-center" style={{color:'var(--ink-soft)'}}>
-      Tu peux aussi exporter ton récap (action <em>Récapitulatif</em>) et le joindre à ton email.
-    </p>
-  </Modal>
-);
+  </aside>
 
-const GuideModal = ({ open, onClose, conversation }) => {
-  const lastAssistant = [...conversation].reverse().find(m => m.role === 'assistant' && m.data);
-  const subject = lastAssistant?.data?.sujet_principal || 'enduit';
-  const products = lastAssistant?.data?.produits_suggeres || [];
+</div>
 
-  return (
-    <Modal open={open} onClose={onClose} title="Guide de mise en œuvre" size="lg">
-      <p className="text-sm mb-4" style={{color:'var(--ink-soft)'}}>
-        Voici un guide générique basé sur tes échanges. Pour un guide détaillé adapté à
-        ton chantier précis, contacte l'équipe.
-      </p>
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const API_ENDPOINT = '/api/fabien-v2';
+const STORAGE_CONVERSATIONS = 'fk_conversations';
+const STORAGE_PROJECTS = 'fk_projects';
+const STORAGE_CURRENT = 'fk_current';
 
-      <div className="space-y-4">
-        <div className="p-4 rounded-lg" style={{background:'var(--cream-light)'}}>
-          <h4 className="font-display text-base mb-2" style={{color:'var(--green-deep)'}}>
-            1. Préparer le support
-          </h4>
-          <p className="text-sm">Dépoussiérer, brosser, retirer les parties friables. Humidifier la veille
-          ET le matin sur briques et pierres absorbantes.</p>
-        </div>
+// État global
+let state = {
+  agent: 'prescription',
+  conversation: [],
+  conversationId: null,
+  projects: [],
+  conversations: []
+};
 
-        <div className="p-4 rounded-lg" style={{background:'var(--cream-light)'}}>
-          <h4 className="font-display text-base mb-2" style={{color:'var(--green-deep)'}}>
-            2. Conditions de pose
-          </h4>
-          <p className="text-sm">Hors gel pendant toute la prise. Température 5-30°C, viser 10-20°C.
-          Abri du vent, soleil direct, pluie pendant minimum 1 jour (NHL/HL) ou 3 jours (chaux aérienne).</p>
-        </div>
+// ================================================================
+// INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+  renderProjects();
+  renderHistory();
+  setupTextareaAutoResize();
+});
 
-        <div className="p-4 rounded-lg" style={{background:'var(--cream-light)'}}>
-          <h4 className="font-display text-base mb-2" style={{color:'var(--green-deep)'}}>
-            3. Application
-          </h4>
-          <p className="text-sm">Travailler en couches successives. Respecter les délais entre couches :
-          minimum 2 jours (NHL/HL) ou 1 semaine (chaux aérienne) avant la couche suivante.</p>
-        </div>
+function loadFromStorage() {
+  try {
+    state.projects = JSON.parse(localStorage.getItem(STORAGE_PROJECTS) || '[]');
+    state.conversations = JSON.parse(localStorage.getItem(STORAGE_CONVERSATIONS) || '[]');
+  } catch (e) {
+    console.warn('Storage load failed', e);
+  }
+}
 
-        {products.length > 0 && (
-          <div className="p-4 rounded-lg" style={{background:'var(--cream-light)'}}>
-            <h4 className="font-display text-base mb-2" style={{color:'var(--green-deep)'}}>
-              Produits associés
-            </h4>
-            <ul className="text-sm space-y-1">
-              {products.map((p, i) => <li key={i}>• {p.name}</li>)}
-            </ul>
-          </div>
-        )}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(state.projects));
+  localStorage.setItem(STORAGE_CONVERSATIONS, JSON.stringify(state.conversations));
+}
 
-        <div className="p-4 rounded-lg border-l-4"
-             style={{background:'var(--cream-light)', borderColor:'var(--rust)'}}>
-          <h4 className="font-medium text-sm mb-1" style={{color:'var(--rust)'}}>
-            ⚠️ À vérifier toujours
-          </h4>
-          <p className="text-sm">La compatibilité support / produit. La formulation maison reste la
-          référence sur bâti ancien. En cas de doute : <strong>{FAIREKO_PHONE}</strong>.</p>
-        </div>
+function showFabien() {
+  document.getElementById('fabien-img').style.display = 'block';
+  const ph = document.getElementById('fabien-placeholder');
+  if (ph) ph.style.display = 'none';
+}
+
+function setupTextareaAutoResize() {
+  const ta = document.getElementById('user-input');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  });
+}
+
+// ================================================================
+// AGENTS
+// ================================================================
+function selectAgent(card) {
+  document.querySelectorAll('.fk-agent-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  state.agent = card.dataset.agent;
+  document.getElementById('current-agent-name').textContent = card.dataset.name;
+  document.getElementById('current-agent-sub').textContent = card.dataset.desc;
+}
+
+// ================================================================
+// PROJETS
+// ================================================================
+function renderProjects() {
+  const list = document.getElementById('projects-list');
+  const count = document.getElementById('projects-count');
+  count.textContent = state.projects.length;
+
+  // On garde le bouton "Nouveau projet" en bas
+  const projectsHTML = state.projects.map(p => `
+    <div class="fk-project-item" data-id="${p.id}">
+      <span class="fk-project-emoji">${escapeHtml(p.emoji || '🏠')}</span>
+      <span class="fk-project-text">${escapeHtml(p.name)}</span>
+      <span class="fk-project-conv-count">${p.convCount || 0}</span>
+    </div>
+  `).join('');
+
+  list.innerHTML = projectsHTML + `
+    <button class="fk-project-new" onclick="createProject()">
+      <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouveau projet
+    </button>
+  `;
+}
+
+function createProject() {
+  const name = prompt('Nom du projet (ex: Maison Dupont — 1180)');
+  if (!name) return;
+  state.projects.push({
+    id: 'proj_' + Date.now(),
+    name,
+    emoji: '🏠',
+    convCount: 0,
+    createdAt: Date.now()
+  });
+  saveToStorage();
+  renderProjects();
+}
+
+// Toggle dépliage projets
+document.getElementById('projects-toggle').addEventListener('click', () => {
+  document.getElementById('projects-block').classList.toggle('expanded');
+});
+
+// ================================================================
+// HISTORIQUE
+// ================================================================
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.conversations.length === 0) {
+    list.innerHTML = '<div class="fk-history-empty">Aucune conversation pour le moment</div>';
+    return;
+  }
+  list.innerHTML = state.conversations.slice(-15).reverse().map(c => `
+    <div class="fk-history-item ${c.id === state.conversationId ? 'active' : ''}" onclick="loadConversation('${c.id}')">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="fk-history-item-text">${escapeHtml(c.title || 'Conversation')}</span>
+    </div>
+  `).join('');
+}
+
+function loadConversation(id) {
+  const conv = state.conversations.find(c => c.id === id);
+  if (!conv) return;
+  state.conversationId = id;
+  state.conversation = conv.messages || [];
+  renderMessages();
+  renderHistory();
+}
+
+function startNewConversation() {
+  state.conversation = [];
+  state.conversationId = null;
+  document.getElementById('messages').innerHTML = `
+    <div class="fk-welcome" id="welcome">
+      <h1 class="fk-welcome-title">Bonjour 👋</h1>
+      <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+    </div>
+  `;
+  renderHistory();
+  updateActionsState();
+}
+
+// ================================================================
+// MESSAGES
+// ================================================================
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderMessages() {
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+
+  if (state.conversation.length === 0) {
+    container.innerHTML = `
+      <div class="fk-welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés.</p>
       </div>
-    </Modal>
-  );
-};
+    `;
+    return;
+  }
 
-const PanierModal = ({ open, onClose, products, conversation }) => {
-  // Build stratified panier from systeme.couches if available, else fallback to products
-  const lastSysteme = [...conversation].reverse().find(m => m.role === 'assistant' && m.data?.systeme)?.data?.systeme;
+  state.conversation.forEach((msg, idx) => {
+    if (msg.role === 'user') {
+      const userText = typeof msg.content === 'string' ? msg.content : '';
+      container.innerHTML += `
+        <div class="fk-msg user">
+          <div class="fk-msg-avatar">DR</div>
+          <div class="fk-msg-bubble">${escapeHtml(userText)}</div>
+        </div>
+      `;
+    } else if (msg.role === 'assistant') {
+      const data = msg._fabienData || {};
+      let bubble = `<div class="fk-msg-bubble">${escapeHtml(data.message || msg.content || '')}`;
 
-  return (
-    <Modal open={open} onClose={onClose} title="Panier — système d'enduit" size="lg">
-      {lastSysteme && lastSysteme.couches ? (
-        <>
-          <p className="text-sm mb-4" style={{color:'var(--ink-soft)'}}>
-            Voici les produits par couche pour le système identifié.
-            Chaque ligne correspond à une étape du chantier.
-          </p>
-          <div className="space-y-3 mb-5">
-            {lastSysteme.couches.map((couche, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border" style={{borderColor:'var(--line)'}}>
-                <div className="px-3 py-2 flex items-center gap-2"
-                     style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-                  <span className="role-badge" style={{background:'var(--cream-light)', color:'var(--green-deep)'}}>{couche.ordre}</span>
-                  <span className="font-medium text-sm">{couche.role}</span>
-                  {couche.optional && <span className="badge ml-1" style={{color:'var(--sand)'}}>optionnel</span>}
-                </div>
-                <div style={{background:'var(--cream-light)'}}>
-                  {(couche.products || []).map((p, pi) => (
-                    <div key={pi} className="px-3 py-2 flex items-center justify-between border-t"
-                         style={{borderColor:'var(--line-soft)'}}>
-                      <div className="flex-1 min-w-0">
-                        <a href={productUrl(p.id)} target="_blank" rel="noopener"
-                           className="text-sm font-medium hover:underline" style={{color:'var(--green-deep)'}}>
-                          {p.name}
-                        </a>
-                        <div className="text-xs font-mono mt-0.5" style={{color:'var(--ink-soft)'}}>
-                          ID #{p.id}
-                          {p.conso_value && ` · ${p.conso_value} ${p.conso_unit}`}
-                        </div>
-                        {p.note && <div className="text-xs italic mt-1" style={{color:'var(--ink-soft)'}}>{p.note}</div>}
-                      </div>
-                      <a href={productUrl(p.id)} target="_blank" rel="noopener"
-                         className="text-xs px-2.5 py-1 rounded font-medium btn-hover ml-2 whitespace-nowrap"
-                         style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-                        Voir →
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : products.length === 0 ? (
-        <p className="text-sm" style={{color:'var(--ink-soft)'}}>
-          Pas encore de produit identifié. Continue la conversation, Fabien suggérera des produits adaptés.
-        </p>
-      ) : (
-        <ul className="space-y-2 mb-5">
-          {products.map((p, i) => (
-            <li key={i} className="flex items-center justify-between p-3 rounded-lg"
-                style={{background:'var(--cream-light)'}}>
-              <div>
-                <a href={productUrl(p.id)} target="_blank" rel="noopener"
-                   className="text-sm font-semibold hover:underline" style={{color:'var(--green-deep)'}}>
-                  {p.name}
-                </a>
-                <div className="text-xs font-mono mt-0.5" style={{color:'var(--ink-soft)'}}>ID #{p.id}</div>
-              </div>
-              <a href={productUrl(p.id)} target="_blank" rel="noopener"
-                 className="text-xs px-3 py-1.5 rounded font-medium btn-hover"
-                 style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-                Voir →
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
-      <a href={FAIREKO_SHOP} target="_blank" rel="noopener"
-         className="block btn-hover p-4 rounded-lg text-center"
-         style={{background:'var(--green-deep)', color:'var(--cream-light)'}}>
-        <div className="font-medium">🛒 Aller sur le shop FAIRĒKO</div>
-        <div className="text-xs opacity-80 mt-1">faireko.be/shop</div>
-      </a>
-    </Modal>
-  );
-};
-
-// ========================================================================
-// MAIN APP
-// ========================================================================
-
-const App = () => {
-  const [conversation, setConversation] = useState([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [modal, setModal] = useState(null);
-  const [surface, setSurface] = useState('22');
-  const recognitionRef = useRef(null);
-  const messagesEndRef = useRef(null);
-
-  // ----- Init: try restore conversation -----
-  useEffect(() => {
-    const stored = loadConversation();
-    if (stored && Array.isArray(stored) && stored.length > 0) {
-      setConversation(stored);
-    }
-  }, []);
-
-  // ----- Persist conversation -----
-  useEffect(() => {
-    if (conversation.length > 0) saveConversation(conversation);
-  }, [conversation]);
-
-  // ----- Auto-scroll -----
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [conversation, loading]);
-
-  // ----- Voice input setup (Web Speech API) -----
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    const rec = new SR();
-    rec.lang = 'fr-FR';
-    rec.continuous = false;
-    rec.interimResults = true;
-    rec.onresult = (e) => {
-      let t = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-      setInput(t);
-    };
-    rec.onend = () => setRecording(false);
-    rec.onerror = () => setRecording(false);
-    recognitionRef.current = rec;
-  }, []);
-
-  const toggleMic = () => {
-    if (!recognitionRef.current) {
-      alert('La dictée vocale n\'est pas supportée par ce navigateur.\nUtilise Chrome, Edge ou Safari.');
-      return;
-    }
-    if (recording) {
-      recognitionRef.current.stop();
-      setRecording(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setRecording(true);
-      } catch (e) {
-        // Already started
+      // Produits
+      if (data.produits_suggeres && data.produits_suggeres.length > 0) {
+        bubble += `<div class="fk-products">`;
+        data.produits_suggeres.forEach(p => {
+          bubble += `<span class="fk-product-card">📦 ${escapeHtml(p.name)}</span>`;
+        });
+        bubble += `</div>`;
       }
-    }
-  };
 
-  // ----- Send message -----
-  const sendMessage = async (textOverride) => {
-    const text = (textOverride !== undefined ? textOverride : input).trim();
-    if (!text || loading) return;
-
-    // Build conversation history for backend (Anthropic messages format)
-    const userMsg = { role: 'user', text };
-    const newConv = [...conversation, userMsg];
-    setConversation(newConv);
-    setInput('');
-    setLoading(true);
-
-    // Backend expects { messages: [{role, content}] }
-    const apiMessages = newConv.map(m => {
-      if (m.role === 'user') return { role: 'user', content: m.text };
-      // assistant: send back the message text only (the JSON wrapper isn't needed for LLM context)
-      return { role: 'assistant', content: m.data?.message || '' };
-    });
-
-    try {
-      const res = await fetch(API_ENDPOINT, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ messages: apiMessages })
-      });
-      const data = await res.json();
-
-      if (!data.success && !data.message) {
-        setConversation([...newConv, {
-          role: 'assistant',
-          data: {
-            message: 'Désolé, j\'ai eu un souci technique. Réessaie ou contacte ' + FAIREKO_PHONE + '.',
-            actions: DEFAULT_ACTIONS,
-            quick_options: [],
-          }
-        }]);
-      } else {
-        // Ensure actions present
-        if (!data.actions || !Array.isArray(data.actions) || data.actions.length === 0) {
-          data.actions = DEFAULT_ACTIONS.map(a => ({...a, enabled: a.id === 'expert'}));
+      // Quick options
+      if (data.quick_options && data.quick_options.length > 0) {
+        bubble += `<div class="fk-quick-options">`;
+        if (data.quick_options_question) {
+          bubble += `<div class="fk-quick-question">${escapeHtml(data.quick_options_question)}</div>`;
         }
-        setConversation([...newConv, { role:'assistant', data }]);
+        data.quick_options.forEach(o => {
+          bubble += `<button class="fk-quick-btn" onclick="sendQuickOption('${escapeHtml(o.label)}')">${o.icon || ''} ${escapeHtml(o.label)}</button>`;
+        });
+        bubble += `</div>`;
       }
-    } catch (err) {
-      setConversation([...newConv, {
-        role: 'assistant',
-        data: {
-          message: 'Connexion impossible avec Fabien. Vérifie ta connexion ou contacte ' + FAIREKO_PHONE + '.',
-          actions: DEFAULT_ACTIONS,
-          quick_options: [],
-        }
-      }]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // ----- Reset conversation -----
-  const handleReset = () => {
-    if (conversation.length === 0 || confirm('Démarrer une nouvelle conversation ?\nL\'historique actuel sera perdu.')) {
-      setConversation([]);
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  };
+      bubble += `</div>`;
 
-  // ----- Action handler -----
-  const handleAction = (id) => {
-    setModal(id);
-  };
-
-  // Get latest actions from last assistant message, or defaults
-  const lastAssistant = [...conversation].reverse().find(m => m.role === 'assistant' && m.data);
-  const currentActions = lastAssistant?.data?.actions || DEFAULT_ACTIONS;
-
-  // Collect all unique products in conversation for the panier
-  const allProducts = [];
-  conversation.forEach(m => {
-    if (m.role === 'assistant' && m.data?.produits_suggeres) {
-      m.data.produits_suggeres.forEach(p => {
-        if (!allProducts.find(x => x.id === p.id)) allProducts.push(p);
-      });
+      container.innerHTML += `
+        <div class="fk-msg assistant">
+          <div class="fk-msg-avatar">F</div>
+          ${bubble}
+        </div>
+      `;
     }
   });
 
-  return (
-    <>
-      {/* Page Fabien dédiée — pleine viewport */}
-      <div className="fabien-page">
-        <Header onReset={handleReset}
-                onCalculator={() => setModal('calc')} />
+  container.scrollTop = container.scrollHeight;
+}
 
-        {conversation.length === 0 && <BetaBanner />}
-
-        <main className="fabien-page-main">
-          <div className="fabien-page-content">
-            {conversation.length === 0 ? (
-              <Welcome onStart={(text) => sendMessage(text)} />
-            ) : (
-              <div className="space-y-1">
-                {conversation.map((m, i) => {
-                  const isLast = i === conversation.length - 1;
-                  if (m.role === 'user') return <UserMessage key={i} text={m.text} />;
-                  return <AssistantMessage key={i} data={m.data} isLast={isLast && !loading}
-                                           onQuickSelect={(text) => sendMessage(text)}
-                                           surface={surface}
-                                           onSurfaceChange={setSurface}
-                                           onCalculator={() => setModal('calc')} />;
-                })}
-                {loading && <ThinkingMessage />}
-                <div ref={messagesEndRef}></div>
-              </div>
-            )}
-          </div>
-        </main>
-
-        <footer className="fabien-page-footer">
-          <div className="fabien-page-footer-inner">
-            <InputBar value={input}
-                      onChange={setInput}
-                      onSubmit={() => sendMessage()}
-                      onMicToggle={toggleMic}
-                      recording={recording}
-                      disabled={loading} />
-            <ActionsBar actions={currentActions} onAction={handleAction} />
-          </div>
-        </footer>
+function showTypingIndicator() {
+  const container = document.getElementById('messages');
+  container.innerHTML += `
+    <div class="fk-msg assistant" id="typing-indicator">
+      <div class="fk-msg-avatar">F</div>
+      <div class="fk-msg-bubble">
+        <div class="fk-typing">
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+        </div>
       </div>
+    </div>
+  `;
+  container.scrollTop = container.scrollHeight;
+}
 
-      {/* Modals (overlay sur la page) */}
-      <SurfaceCalculator open={modal === 'calc'}   onClose={() => setModal(null)}
-                         systeme={lastAssistant?.data?.systeme}
-                         initialSurface={surface}
-                         onApplySurface={setSurface} />
-      <RecapModal        open={modal === 'recap'}  onClose={() => setModal(null)} conversation={conversation} />
-      <ExpertModal       open={modal === 'expert'} onClose={() => setModal(null)} />
-      <GuideModal        open={modal === 'guide'}  onClose={() => setModal(null)} conversation={conversation} />
-      <PanierModal       open={modal === 'panier'} onClose={() => setModal(null)}
-                         products={allProducts}
-                         conversation={conversation} />
-    </>
-  );
-};
+function removeTypingIndicator() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+// ================================================================
+// ENVOI MESSAGE
+// ================================================================
+function handleKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendSuggestion(btn) {
+  const text = btn.querySelector('.fk-suggestion-title').textContent + ' — ' + btn.querySelector('.fk-suggestion-desc').textContent;
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+function sendQuickOption(label) {
+  document.getElementById('user-input').value = label;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const ta = document.getElementById('user-input');
+  const text = ta.value.trim();
+  if (!text) return;
+
+  // Reset welcome si premier message
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // Ajout message user
+  state.conversation.push({ role: 'user', content: text });
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  renderMessages();
+  showTypingIndicator();
+
+  // Désactiver bouton envoi
+  document.getElementById('send-btn').disabled = true;
+
+  try {
+    const apiMessages = state.conversation.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: state.agent,
+        messages: apiMessages
+      })
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    removeTypingIndicator();
+
+    // Stockage réponse complète dans le message
+    state.conversation.push({
+      role: 'assistant',
+      content: data.message || '',
+      _fabienData: data
+    });
+
+    renderMessages();
+    saveCurrentConversation();
+    updateActionsState();
+
+  } catch (err) {
+    removeTypingIndicator();
+    state.conversation.push({
+      role: 'assistant',
+      content: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu`,
+      _fabienData: { message: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu` }
+    });
+    renderMessages();
+  } finally {
+    document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function saveCurrentConversation() {
+  if (state.conversation.length === 0) return;
+
+  if (!state.conversationId) {
+    state.conversationId = 'conv_' + Date.now();
+  }
+
+  const firstUserMsg = state.conversation.find(m => m.role === 'user');
+  const title = firstUserMsg ? firstUserMsg.content.substring(0, 50) : 'Conversation';
+
+  const existing = state.conversations.findIndex(c => c.id === state.conversationId);
+  const convData = {
+    id: state.conversationId,
+    title,
+    messages: state.conversation,
+    agent: state.agent,
+    updatedAt: Date.now()
+  };
+
+  if (existing >= 0) {
+    state.conversations[existing] = convData;
+  } else {
+    state.conversations.push(convData);
+  }
+
+  saveToStorage();
+  renderHistory();
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+function updateActionsState() {
+  const hasMsg = state.conversation.length >= 2;
+  document.getElementById('action-recap').disabled = !hasMsg;
+  document.getElementById('action-guide').disabled = !hasMsg;
+}
+
+function exportConversation() {
+  const text = state.conversation.map(m => {
+    const role = m.role === 'user' ? '— VOUS —' : '— FABIEN —';
+    const content = typeof m.content === 'string' ? m.content : (m._fabienData?.message || '');
+    return `${role}\n${content}\n`;
+  }).join('\n');
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fabien-conversation-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function requestDevis() {
+  const subject = encodeURIComponent('Demande de devis FAIREKO depuis Fabien');
+  const body = encodeURIComponent('Bonjour,\n\nSuite à ma conversation avec Fabien, je souhaite recevoir un devis pour les produits suivants :\n\n[liste à compléter]\n\nMerci.');
+  window.location.href = `mailto:hello@nbsdistribution.eu?subject=${subject}&body=${body}`;
+}
+
+// ================================================================
+// VOIX (Web Speech API native)
+// ================================================================
+let recognition = null;
+let isRecording = false;
+
+function toggleVoiceInput() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('La dictée vocale n\'est pas supportée par votre navigateur.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  const ta = document.getElementById('user-input');
+  const btn = document.getElementById('voice-btn');
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.style.color = 'var(--fk-danger)';
+  };
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(r => r[0].transcript)
+      .join('');
+    ta.value = transcript;
+    ta.dispatchEvent(new Event('input'));
+  };
+  recognition.onerror = () => { isRecording = false; btn.style.color = ''; };
+  recognition.onend = () => { isRecording = false; btn.style.color = ''; };
+
+  recognition.start();
+}
 </script>
 
 </body>
