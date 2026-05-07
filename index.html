@@ -543,6 +543,59 @@ a { color: inherit; text-decoration: none; }
   gap: var(--sp-2);
 }
 
+
+/* MARKDOWN RENDU (guide de pose) */
+.fk-msg-bubble h1 {
+  font-family: var(--fk-font-serif);
+  font-size: 22px;
+  color: var(--fk-vert-fonce);
+  margin: var(--sp-2) 0 var(--sp-4);
+  letter-spacing: -0.01em;
+}
+.fk-msg-bubble h2 {
+  font-size: 17px;
+  color: var(--fk-vert-fonce);
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-weight: 700;
+}
+.fk-msg-bubble h3 {
+  font-size: 15px;
+  color: var(--fk-charbon);
+  margin: var(--sp-3) 0 var(--sp-1);
+  font-weight: 600;
+}
+.fk-msg-bubble strong { color: var(--fk-vert-fonce); font-weight: 600; }
+.fk-msg-bubble em { color: var(--fk-bois); font-style: italic; }
+.fk-msg-bubble ul {
+  margin: var(--sp-2) 0;
+  padding-left: var(--sp-5);
+  list-style: none;
+}
+.fk-msg-bubble ul li {
+  position: relative;
+  margin-bottom: var(--sp-1);
+  padding-left: var(--sp-3);
+}
+.fk-msg-bubble ul li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--fk-vert-mousse);
+  font-weight: 700;
+}
+.fk-msg-bubble code {
+  background: var(--fk-creme);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--fk-vert-fonce);
+}
+.fk-msg-bubble.guide-pose {
+  background: linear-gradient(180deg, white 0%, var(--fk-blanc-casse) 100%);
+  border-left: 3px solid var(--fk-vert-mousse);
+}
+
 /* INDICATEUR FRAPPE */
 .fk-typing {
   display: inline-flex;
@@ -1049,7 +1102,7 @@ a { color: inherit; text-decoration: none; }
             <div class="fk-action-desc">Toute la conversation</div>
           </div>
         </button>
-        <button class="fk-action-btn" id="action-guide" disabled>
+        <button class="fk-action-btn" id="action-guide" onclick="requestGuidePose()" disabled>
           <div class="fk-action-icon">
             <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
           </div>
@@ -1274,6 +1327,50 @@ function startNewConversation() {
 // ================================================================
 // MESSAGES
 // ================================================================
+function renderMarkdown(text) {
+  if (!text) return '';
+  // D'abord on échappe le HTML
+  let html = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  // Puis on convertit le markdown
+  // Titres
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Listes (lignes commençant par -)
+  html = html.replace(/^(- .+)(\n- .+)*/gm, function(match) {
+    const items = match.split('\n').map(line =>
+      '<li>' + line.replace(/^- /, '') + '</li>'
+    ).join('');
+    return '<ul>' + items + '</ul>';
+  });
+
+  // Gras **texte**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italique *texte*
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+  // Code `texte`
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Sauts de ligne (\n -> <br> sauf après les balises blocks)
+  html = html.replace(/(<\/(h1|h2|h3|ul|li)>)\n/g, '$1');
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+
+  // Wrapper paragraphes
+  if (!html.startsWith('<')) {
+    html = '<p>' + html + '</p>';
+  }
+
+  return html;
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -1309,7 +1406,12 @@ function renderMessages() {
       `;
     } else if (msg.role === 'assistant') {
       const data = msg._fabienData || {};
-      let bubble = `<div class="fk-msg-bubble">${escapeHtml(data.message || msg.content || '')}`;
+      const isGuide = data.agent === 'guide_pose';
+      const bubbleClass = isGuide ? 'fk-msg-bubble guide-pose' : 'fk-msg-bubble';
+      const messageHtml = isGuide
+        ? renderMarkdown(data.message || msg.content || '')
+        : escapeHtml(data.message || msg.content || '');
+      let bubble = `<div class="${bubbleClass}">${messageHtml}`;
 
       if (data.produits_suggeres && data.produits_suggeres.length > 0) {
         bubble += `<div class="fk-products">`;
@@ -1481,6 +1583,98 @@ function saveCurrentConversation() {
 // ================================================================
 // ACTIONS
 // ================================================================
+async function requestGuidePose() {
+  if (state.conversation.length < 2) return;
+
+  // Vérifier qu'il y a des produits suggérés dans le dernier message assistant
+  const lastAssistant = [...state.conversation].reverse().find(m => m.role === 'assistant');
+  if (!lastAssistant?._fabienData?.produits_suggeres?.length) {
+    alert('Pose une question avec des produits avant de demander un guide de pose.');
+    return;
+  }
+
+  // Construire un message user "Guide de pose pour ces produits"
+  const productNames = lastAssistant._fabienData.produits_suggeres.map(p => p.name).join(', ');
+  const guideRequest = `Donne-moi le guide de pose détaillé pour : ${productNames}`;
+
+  state.conversation.push({ role: 'user', content: guideRequest });
+
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  renderMessages();
+  showTypingIndicator();
+
+  try {
+    const apiMessages = state.conversation.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: 'guide_pose',
+        messages: apiMessages
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    removeTypingIndicator();
+
+    state.conversation.push({
+      role: 'assistant',
+      content: data.message || '',
+      _fabienData: data
+    });
+
+    renderMessages();
+    saveCurrentConversation();
+    updateActionsState();
+  } catch (err) {
+    removeTypingIndicator();
+    state.conversation.push({
+      role: 'assistant',
+      content: `❌ Désolé, le guide de pose n'a pas pu être généré : ${err.message}`,
+      _fabienData: { message: `❌ Désolé, le guide de pose n'a pas pu être généré : ${err.message}` }
+    });
+    renderMessages();
+  }
+}
+
+function printGuide() {
+  // Récupère le dernier guide_pose et l'imprime via fenêtre dédiée
+  const lastGuide = [...state.conversation].reverse().find(m =>
+    m.role === 'assistant' && m._fabienData?.agent === 'guide_pose'
+  );
+  if (!lastGuide) {
+    alert('Aucun guide de pose à imprimer. Demande-en un d\'abord.');
+    return;
+  }
+
+  const html = renderMarkdown(lastGuide._fabienData.message || lastGuide.content);
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Guide de pose Fabien — FAIRĒKO</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 20px; color: #1a1a17; line-height: 1.6; }
+      h1 { font-family: Georgia, serif; color: #2d4a2b; border-bottom: 2px solid #5a7548; padding-bottom: 10px; }
+      h2 { color: #2d4a2b; margin-top: 30px; }
+      h3 { color: #5a7548; }
+      ul { padding-left: 20px; }
+      .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e3d6; font-size: 11px; color: #6b6b66; }
+    </style></head><body>${html}
+    <div class="footer">Guide généré par Fabien — FAIRĒKO. Vérifiez les données critiques sur les fiches officielles.</div>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
 function updateActionsState() {
   const hasMsg = state.conversation.length >= 2;
   document.getElementById('action-recap').disabled = !hasMsg;
