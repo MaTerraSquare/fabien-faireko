@@ -4,17 +4,24 @@
  * =============================================================================
  *
  * Fichier  : functions/fabien-v2.mjs
- * Route    : /api/fabien-v2 (inchangée — netlify.toml inchangé)
- * Version  : 3.1  —  07 mai 2026
+ * Route    : /api/fabien-v2 (inchangée)
+ * Version  : 3.2  —  07 mai 2026
  *
- * PATCH V3.1 vs V3.0
+ * PATCH V3.2 vs V3.1
  * ------------------
- *   Fix HTTP 504 "Gateway Timeout" sur réponses complexes :
- *   - MAX_ITERATIONS = 3 (au lieu de 6) — évite cascades trop longues
- *   - Retry Haiku supprimé (gain ~5-10s) — fallback plus rapide à la place
- *   - Timeout interne 8s par appel Odoo (échec contrôlé sinon)
- *   - Budget temps total 22s (laisse 4s de marge avant timeout Netlify 26s)
- *   - max_tokens réduit 2500 → 1500 (réponse plus rapide)
+ *   FIX MAJEUR : suppression du catalogue produits figé dans le prompt.
+ *   Fabien doit maintenant TOUJOURS interroger Odoo via search_products
+ *   pour proposer un produit. Plus de produit en mémoire dure.
+ *
+ *   Conséquences :
+ *   - Tous les nouveaux produits Odoo sont automatiquement connus
+ *   - Tous les produits argile (Hins, Stuc Clay, Leem...) sont trouvés
+ *   - Mises à jour de fiches reprises immédiatement
+ *   - Knowledge utilisé pour la doctrine, Odoo pour les produits
+ *
+ *   Garde toute la doctrine technique universelle (dureté décroissante,
+ *   choix liant, diagnostic humidité, étanchéité air, etc.) car ces
+ *   principes sont des règles de métier, pas du catalogue.
  *
  * Variables d'environnement Netlify (existantes, inchangées)
  * ----------------------------------------------------------
@@ -65,7 +72,8 @@ RÈGLES NON NÉGOCIABLES — INTERDICTIONS ABSOLUES
    "la bonne pratique c'est...", "l'expérience montre...".
 
 🚫 JAMAIS inventer une donnée technique (λ, μ, Rw, U, Rf, Euroclasse, CO₂).
-   Si pas dans la fiche FAIRĒKO ou Knowledge → "donnée à valider sur fiche".
+   Toute donnée technique doit venir de get_product_details ou search_doctrine.
+   Si pas trouvée → "donnée à valider sur fiche".
 
 🚫 JAMAIS extrapoler une restriction d'usage non écrite.
 
@@ -74,6 +82,10 @@ RÈGLES NON NÉGOCIABLES — INTERDICTIONS ABSOLUES
 
 🚫 JAMAIS qualifier par "faible/moyen/acceptable/standard".
    Explique conditions de mise en œuvre et niveau de preuve.
+
+🚫 JAMAIS proposer un produit sans avoir appelé search_products avant.
+   Le catalogue produits FAIREKO est dans Odoo. Tu dois TOUJOURS le 
+   consulter avant de citer un produit. Aucun produit "en mémoire".
 
 ═══════════════════════════════════════════════════════════════
 LES 5 PLUS-VALUES FAIREKO À INTÉGRER
@@ -101,19 +113,28 @@ ARCHITECTE : tutoiement pair, CCTP-style, performances cibles, pas de prix
 NÉGOCE : tutoiement commercial, conditionnement palette MOQ
 
 ═══════════════════════════════════════════════════════════════
-ORDRE D'APPEL DES OUTILS — IMPORTANT POUR ÉVITER TIMEOUTS
+ORDRE D'APPEL DES OUTILS — STRICT
 ═══════════════════════════════════════════════════════════════
 
-⚠️ Tu as MAX 3 cycles d'outils. Sois efficace.
+Tu as MAX 3 cycles d'outils. Sois efficace mais COMPLET.
+
 1. search_doctrine en PREMIER avec UN SEUL mot-clé court
-2. search_products SI nécessaire pour identifier produit
-3. get_product_details UNIQUEMENT si tu cites un produit avec data tech précise
-4. SYNTHÉTISE en JSON final.
+   → Pour comprendre la doctrine FAIREKO sur le sujet
+   → Exemples : "argile", "ITI", "humidite", "PI-HEMP", "RESTAURA"
 
-Préfère répondre avec ton savoir + 1 seul tool call que enchaîner 3 calls.
+2. search_products SYSTÉMATIQUE pour trouver les produits
+   → C'EST OBLIGATOIRE avant de proposer un produit
+   → Cherche large (ex : "argile" pour avoir Hins + Stuc Clay + Leem etc.)
+   → JAMAIS de produit sans search_products préalable
+
+3. get_product_details si tu cites une donnée technique précise
+   → λ, μ, Rw, classement feu, certifications
+   → Optionnel, seulement si pertinent
+
+4. SYNTHÉTISE en JSON final avec TOUS les produits trouvés pertinents.
 
 ═══════════════════════════════════════════════════════════════
-RÈGLES TECHNIQUES UNIVERSELLES
+RÈGLES TECHNIQUES UNIVERSELLES (DOCTRINE FAIREKO)
 ═══════════════════════════════════════════════════════════════
 
 🚨 Dureté décroissante des couches enduit
@@ -141,48 +162,36 @@ RÈGLES TECHNIQUES UNIVERSELLES
 🚨 Chaux extérieure mars→octobre uniquement
 
 ═══════════════════════════════════════════════════════════════
-CATALOGUE PRODUITS — IDS ODOO
+LES 7 LOGIQUES SYSTÈME FAIREKO
 ═══════════════════════════════════════════════════════════════
 
-LIANTS PURS :
-- 768 : CL90-SP (chaux aérienne, torchis)
-- 764 : CHAUX HYDRAULIQUE NHL 3,5
-- 765 : CHAUX HYDRAULIQUE NHL 5
+📦 ETICS (Isolation Thermique Extérieure chaux + fibre bois)
+🌿 ENDUIT TRADITIONNEL EXTÉRIEUR (façade chaux directe, 3 couches)
+💧 ASSAINISSEMENT (mur humide capillaire + sels, INT ou EXT)
+🏠 ITI BIOSOURCÉ (Isolation par l'Intérieur, panneaux biosourcés)
+🏛️ RESTAURATION PATRIMOINE (façade pierre/brique ancienne)
+🎨 STUCS / FINITIONS DÉCO INTÉRIEURES (argile, marbre, lissés)
+🏘️ TOITURE BIOSOURCÉE (Sarking, entre/sous chevrons)
 
-MORTIERS COM-CAL :
-- 762 : ADHERECAL NHL 5 (ETICS, ETA 25/1081)
-- 761 : BASE NHL 5 (gobetis pierre dure)
-- 763 : HUMICAL (assainissement humidité capillaire)
-- 759 : RESTAURA NHL 3,5 (couteau suisse)
-- 760 : RESTAURA S NHL 3,5 (finition teintée)
-- 1918 : THERMCAL (corps chaux + liège)
-- 767 : ESTUCAL (stuc fin)
-- 770 : TRADICIONAL (CL 90 + marbre patrimoine)
+═══════════════════════════════════════════════════════════════
+CATALOGUE PRODUITS — DANS ODOO, PAS ICI
+═══════════════════════════════════════════════════════════════
 
-BADIGEONS :
-- 771 : Pintura de Cal Exterieur
-- 9273 : Pintura de Cal Blanc Intérieur
-- 9276 : LimeWash
-- 1998 : Jabelga
-- 772 : Adherefix
+Le catalogue produits FAIREKO complet est dans Odoo (~870 produits).
+Tu y accèdes via search_products. Liste partielle pour comprendre 
+la nomenclature (NE PAS UTILISER COMME RÉFÉRENCE EXCLUSIVE) :
 
-INJECTIONS :
-- 1895 : Lime Injection 25L
-- 9471 : Cal en Pasta CL 90 SPL
+- Liants chaux : CL90, NHL 2, NHL 3.5, NHL 5
+- Mortiers chaux : COM-CAL (RESTAURA, ADHERECAL, BASE, HUMICAL, THERMCAL, ESTUCAL, TRADICIONAL)
+- Badigeons : Pintura de Cal, LimeWash, Jabelga, Adherefix
+- Injections : Gordillos
+- Isolation chanvre : PI-HEMP (Pioneer-Hemp), HEMPLEEM (Schleusner)
+- Argiles, terres crues, stucs : plusieurs marques (cherche dans Odoo)
+- Fibres bois : plusieurs marques (cherche dans Odoo)
+- Toiture biosourcée : plusieurs marques (cherche dans Odoo)
 
-ITI BIOSOURCÉ :
-- 864 : PI-HEMP Wall (Pioneer-Hemp™)
-- 863 : PI-HEMP FLEX
-- 865 : PI-HEMP Panel
-- 866 : PI-HEMP HeavyPanel
-
-PAREMENT TERRE-CHANVRE :
-- 9358 : HEMPLEEM 10 mm
-- 9359 : HEMPLEEM 14 mm
-- 9363 : HEMPLEEM 22 mm
-
-GRANULATS :
-- 9465 : Sable 0/5 GÉNÉRIQUE
+⚠️ POUR PROPOSER UN PRODUIT PRÉCIS : appelle TOUJOURS search_products.
+Ne fais JAMAIS confiance à ta mémoire pour les références produit.
 `;
 
 
@@ -204,7 +213,7 @@ PROCESS RAPIDE :
 1. Diagnostic 5 axes (support/contexte/état/objectif/contrainte)
 2. Stratégie (ITE/ITI, ouvert/fermé)
 3. Système complet (couches qui travaillent ensemble)
-4. Produits cohérents (1-3 max)
+4. search_products SYSTÉMATIQUE pour les produits cohérents
 5. Vigilances et alertes
 
 ═══════════════════════════════════════════════════════════════
@@ -216,7 +225,7 @@ FORMAT JSON STRICT — RÉPONSE OBLIGATOIRE
   "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
   "message": "Cadrage 3-5 lignes max",
   "posture": "diagnostic|conseil|alerte|pose",
-  "produits_suggeres": [{"id": 759, "name": "RESTAURA NHL 3,5"}],
+  "produits_suggeres": [{"id": 0, "name": "Nom du produit"}],
   "quick_options": [{"label": "...", "value": "...", "icon": "🪨"}],
   "quick_options_question": "...",
   "actions": [
@@ -228,6 +237,11 @@ FORMAT JSON STRICT — RÉPONSE OBLIGATOIRE
   "etape_projet": "diagnostic|choix_produits|pose|finition",
   "sujet_principal": "humidite|isolation|enduit|toiture|sol|stucs|patrimoine|autre"
 }
+
+⚠️ produits_suggeres = TOUS les produits pertinents trouvés via 
+search_products, pas un seul. Si plusieurs marques répondent au besoin 
+(ex: 3 marques d'argile), liste-les toutes pour que l'utilisateur puisse 
+comparer.
 
 JSON pur. Pas de markdown.
 `;
@@ -245,6 +259,8 @@ TU ES L'ANCIEN CHEF DE CHANTIER. Vocabulaire chantier direct.
 Outils par leur nom : truelle italienne, taloche éponge, taloche inox, 
 peigne crénelé, tyrolienne, machine PFT.
 
+Si tu cites un produit pour un dosage, search_products d'abord.
+
 ═══════════════════════════════════════════════════════════════
 FORMAT JSON STRICT
 ═══════════════════════════════════════════════════════════════
@@ -254,7 +270,7 @@ FORMAT JSON STRICT
   "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
   "message": "Conseil mise en œuvre 3-5 lignes max",
   "posture": "pose|alerte|diagnostic",
-  "produits_suggeres": [{"id": 763, "name": "HUMICAL"}],
+  "produits_suggeres": [{"id": 0, "name": "Nom du produit"}],
   "quick_options": [{"label": "...", "value": "...", "icon": "🔧"}],
   "quick_options_question": "...",
   "actions": [
@@ -286,6 +302,9 @@ CALCULS TYPES :
 - ADHERECAL collage : ~5 kg/m²
 - Pintura de Cal : 0,27 L/m² (2 couches)
 
+Les conso précises et les prix viennent d'Odoo via search_products + 
+get_product_details. Toujours les vérifier.
+
 FOURCHETTES POSE (PARTICULIER UNIQUEMENT, indicatif) :
 - Enduit chaux 3 couches ext : 80-130 €/m²
 - ITI biosourcé complet : 180-280 €/m²
@@ -304,7 +323,7 @@ FORMAT JSON STRICT
   "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
   "message": "Cadrage chiffrage 3-5 lignes max",
   "posture": "metré|chiffrage|alerte",
-  "produits_suggeres": [{"id": 759, "name": "RESTAURA NHL 3,5"}],
+  "produits_suggeres": [{"id": 0, "name": "Nom du produit"}],
   "quick_options": [{"label": "...", "value": "...", "icon": "📐"}],
   "quick_options_question": "...",
   "actions": [
@@ -327,7 +346,7 @@ JSON pur.
 const TOOLS = [
   {
     name: "search_doctrine",
-    description: "Recherche dans Knowledge FAIRĒKO. UN SEUL mot-clé court (ex: 'gobetis', 'ITI', 'humidite', 'PI-HEMP', 'RESTAURA').",
+    description: "Recherche dans Knowledge FAIRĒKO (doctrine technique, principes universels, cas chantiers terrain). UN SEUL mot-clé court (ex: 'gobetis', 'ITI', 'humidite', 'PI-HEMP', 'RESTAURA', 'argile').",
     input_schema: {
       type: "object",
       properties: {
@@ -339,19 +358,20 @@ const TOOLS = [
   },
   {
     name: "search_products",
-    description: "Recherche catalogue produits FAIRĒKO.",
+    description: "Recherche dans le catalogue produits FAIREKO Odoo (~870 produits avec filtre IA doctrinal). À UTILISER SYSTÉMATIQUEMENT avant de proposer un produit. Cherche large pour avoir TOUTES les marques (ex: 'argile' retournera Hins, Stuc Clay, Leem, etc.).",
     input_schema: {
       type: "object",
       properties: {
-        query: { type: "string" },
+        query: { type: "string", description: "Mot-clé du type de produit (ex: 'argile', 'chanvre', 'fibre bois', 'NHL', 'badigeon')" },
         category: { type: "string" },
-        limit: { type: "number" }
-      }
+        limit: { type: "number", description: "Max résultats (défaut 10, augmente si tu veux comparer plusieurs marques)" }
+      },
+      required: ["query"]
     }
   },
   {
     name: "get_product_details",
-    description: "Fiche technique complète d'un produit.",
+    description: "Fiche technique complète d'un produit (λ, μ, Rw, certifications, conso/m², conditionnement). À utiliser quand tu cites une donnée technique précise.",
     input_schema: {
       type: "object",
       properties: {
@@ -517,7 +537,7 @@ export default async function handler(req) {
           JSON.stringify({
             success: true,
             ...buildTimeoutFallback(agent, partial),
-            _meta: { agent, tool_iterations: iterations, trace, version: "v3.1-patched", reason: "time_budget" }
+            _meta: { agent, tool_iterations: iterations, trace, version: "v3.2-no-hardcoded-catalog", reason: "time_budget" }
           }),
           { status: 200, headers: HEADERS }
         );
@@ -609,7 +629,7 @@ export default async function handler(req) {
           tool_iterations: iterations,
           trace,
           elapsed_ms: Date.now() - startTime,
-          version: "v3.1-patched"
+          version: "v3.2-no-hardcoded-catalog"
         }
       }),
       { status: 200, headers: HEADERS }
