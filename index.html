@@ -591,6 +591,41 @@ a { color: inherit; text-decoration: none; }
   font-size: 13px;
   color: var(--fk-vert-fonce);
 }
+.fk-msg-bubble.prescription {
+  background: linear-gradient(180deg, white 0%, var(--fk-blanc-casse) 100%);
+  border-left: 3px solid var(--fk-bois);
+}
+.fk-msg-bubble table {
+  border-collapse: collapse;
+  margin: var(--sp-3) 0;
+  width: 100%;
+  font-size: 13px;
+  background: white;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.fk-msg-bubble table th {
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fk-msg-bubble table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--fk-bordure);
+  vertical-align: top;
+}
+.fk-msg-bubble table tr:last-child td {
+  border-bottom: none;
+}
+.fk-msg-bubble table tr:nth-child(even) td {
+  background: var(--fk-blanc-casse);
+}
 .fk-msg-bubble.guide-pose {
   background: linear-gradient(180deg, white 0%, var(--fk-blanc-casse) 100%);
   border-left: 3px solid var(--fk-vert-mousse);
@@ -970,10 +1005,10 @@ a { color: inherit; text-decoration: none; }
   <main class="fk-main">
     <header class="fk-chat-header">
       <div class="fk-current-agent">
-        <div class="fk-current-agent-icon">⊕</div>
+        <div class="fk-current-agent-icon">⚖️</div>
         <div>
-          <div class="fk-current-agent-name" id="current-agent-name">Expert prescription</div>
-          <div class="fk-current-agent-sub" id="current-agent-sub">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+          <div class="fk-current-agent-name" id="current-agent-name">Aide à la décision</div>
+          <div class="fk-current-agent-sub" id="current-agent-sub">Compare les solutions, met en lumière les compromis, aide à trancher.</div>
         </div>
       </div>
       <div class="fk-chat-actions">
@@ -1066,12 +1101,12 @@ a { color: inherit; text-decoration: none; }
     <div>
       <div class="fk-panel-title">Choisir un partenaire</div>
       <div class="fk-agents">
-        <div class="fk-agent-card active" data-agent="prescription" data-name="Expert prescription" data-desc="Systèmes biosourcés et bas carbone, conformité ETA/ATG." onclick="selectAgent(this)">
+        <div class="fk-agent-card active" data-agent="prescription" data-name="Aide à la décision" data-desc="Compare les solutions, met en lumière les compromis, aide à trancher." onclick="selectAgent(this)">
           <div class="fk-agent-header">
-            <div class="fk-agent-icon expert">⊕</div>
-            <div class="fk-agent-name">Expert prescription</div>
+            <div class="fk-agent-icon expert">⚖️</div>
+            <div class="fk-agent-name">Aide à la décision</div>
           </div>
-          <div class="fk-agent-desc">Systèmes biosourcés et bas carbone, conformité ETA/ATG.</div>
+          <div class="fk-agent-desc">Compare les solutions, met en lumière les compromis, aide à trancher.</div>
         </div>
         <div class="fk-agent-card" data-agent="chantier" data-name="Conseil chantier" data-desc="Mise en œuvre, dosages, ordres de couches, pathologies humidité." onclick="selectAgent(this)">
           <div class="fk-agent-header">
@@ -1343,6 +1378,30 @@ function renderMarkdown(text) {
   html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
   html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
 
+  // Tableaux markdown : | col1 | col2 | + ligne séparation |---|---|
+  // On match toute la zone tableau d'un coup
+  html = html.replace(/((?:^\|.+\|$\n?){2,})/gm, function(match) {
+    const lines = match.trim().split('\n');
+    if (lines.length < 2) return match;
+    // Vérifier ligne 2 = séparation (---|---|)
+    const sepLine = lines[1].trim();
+    if (!/^\|?[\s\-:|]+\|?$/.test(sepLine)) return match;
+    const headerCells = lines[0].split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+    const bodyLines = lines.slice(2);
+    let table = '<table><thead><tr>';
+    headerCells.forEach(c => { table += '<th>' + c + '</th>'; });
+    table += '</tr></thead><tbody>';
+    bodyLines.forEach(line => {
+      const cells = line.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+      if (cells.length === 0) return;
+      table += '<tr>';
+      cells.forEach(c => { table += '<td>' + c + '</td>'; });
+      table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+  });
+
   // Listes (lignes commençant par -)
   html = html.replace(/^(- .+)(\n- .+)*/gm, function(match) {
     const items = match.split('\n').map(line =>
@@ -1407,8 +1466,12 @@ function renderMessages() {
     } else if (msg.role === 'assistant') {
       const data = msg._fabienData || {};
       const isGuide = data.agent === 'guide_pose';
-      const bubbleClass = isGuide ? 'fk-msg-bubble guide-pose' : 'fk-msg-bubble';
-      const messageHtml = isGuide
+      const isPrescription = data.agent === 'prescription';
+      const useMarkdown = isGuide || isPrescription;
+      const bubbleClass = isGuide
+        ? 'fk-msg-bubble guide-pose'
+        : (isPrescription ? 'fk-msg-bubble prescription' : 'fk-msg-bubble');
+      const messageHtml = useMarkdown
         ? renderMarkdown(data.message || msg.content || '')
         : escapeHtml(data.message || msg.content || '');
       let bubble = `<div class="${bubbleClass}">${messageHtml}`;
