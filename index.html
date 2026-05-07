@@ -640,8 +640,8 @@ a { color: inherit; text-decoration: none; }
 
 /* FABIEN À DROITE BARRE */
 .fk-fabien-anchor {
-  width: 110px;
-  height: 160px;
+  width: 138px;
+  height: 200px;
   flex-shrink: 0;
   position: relative;
   display: flex;
@@ -661,8 +661,8 @@ a { color: inherit; text-decoration: none; }
   50% { transform: translateY(-3px); }
 }
 .fk-fabien-placeholder {
-  width: 100px;
-  height: 150px;
+  width: 125px;
+  height: 190px;
   background: linear-gradient(180deg, var(--fk-vert-sauge) 0%, var(--fk-vert-mousse) 100%);
   border-radius: 50% 50% 20% 20%;
   display: flex;
@@ -831,12 +831,13 @@ a { color: inherit; text-decoration: none; }
 
 @media (max-width: 1280px) {
   .fk-app { grid-template-columns: 240px 1fr 300px; }
-  .fk-fabien-anchor { width: 90px; height: 140px; }
+  .fk-fabien-anchor { width: 113px; height: 175px; }
 }
 @media (max-width: 1024px) {
   .fk-app { grid-template-columns: 1fr; }
   .fk-sidebar-left, .fk-sidebar-right { display: none; }
-  .fk-fabien-anchor { display: none; }
+  .fk-fabien-anchor { width: 80px; height: 120px; position: absolute; right: 12px; bottom: 90px; pointer-events: none; z-index: 5; }
+  .fk-input-container { padding-right: 0; }
 }
 </style>
 </head>
@@ -991,7 +992,7 @@ a { color: inherit; text-decoration: none; }
         <!-- FABIEN À DROITE -->
         <div class="fk-fabien-anchor" id="fabien-zone">
           <div class="fk-fabien-placeholder" id="fabien-placeholder">FABIEN</div>
-          <img class="fk-fabien-img" id="fabien-img" src="/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
+          <img class="fk-fabien-img" id="fabien-img" src="/fabien/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
         </div>
       </div>
 
