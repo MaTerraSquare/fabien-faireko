@@ -46,7 +46,7 @@ const HEADERS = {
 };
 
 // Budget temps : Netlify timeout = 26s, on garde 4s de marge
-const TIME_BUDGET_MS = 19000;
+const TIME_BUDGET_MS = 22000;
 const ODOO_TIMEOUT_MS = 8000;
 
 // =============================================================================
@@ -149,26 +149,24 @@ comparatif des chaux NHL si pertinent + suggestion d'aller en
 agent Conseil chantier pour le détail mise en œuvre.
 
 ═══════════════════════════════════════════════════════════════
-ORDRE D'APPEL DES OUTILS — STRICT
+OUTILS — UN SEUL APPEL, BIEN CHOISI
 ═══════════════════════════════════════════════════════════════
 
-Tu as MAX 3 cycles d'outils. Sois efficace mais COMPLET.
+Tu as MAX 1 tool call. Choisis le bon :
 
-1. search_doctrine en PREMIER avec UN SEUL mot-clé court
-   → Pour comprendre la doctrine FAIREKO sur le sujet
-   → Exemples : "argile", "ITI", "humidite", "PI-HEMP", "RESTAURA"
+→ Question PRODUITS (quel matériau, quelle marque, quel prix) :
+  search_products(query="mot-clé large", limit=25)
+  Ex : "argile" → toutes marques, "ETICS" → tous systèmes ETICS
 
-2. search_products SYSTÉMATIQUE pour trouver les produits
-   → C'EST OBLIGATOIRE avant de proposer un produit
-   → Cherche LARGE pour avoir TOUTES les marques (limit: 25)
-     Ex: query="argile" → HINS + STUC AND STAFF + LEEM, etc.
-   → JAMAIS de produit sans search_products préalable
+→ Question DOCTRINE (comment, pourquoi, principe technique) :
+  search_doctrine(query="mot-clé court", limit=2)
+  Ex : "gobetis", "ITI", "humidite"
 
-3. get_product_details si tu cites une donnée technique précise
-   → λ, μ, Rw, classement feu, certifications
-   → Optionnel, seulement si pertinent
+→ Question SIMPLE (cadrage, salutation, profil) :
+  Aucun tool call. Réponds directement.
 
-4. SYNTHÉTISE en JSON final avec présentation PAR MARQUE.
+Après le tool call, tu synthétises et tu rends le JSON.
+Pas de 2e tool call. Pas de get_product_details.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DU MESSAGE — PRÉSENTATION PAR MARQUE (TRÈS IMPORTANT)
@@ -179,31 +177,12 @@ tu NE LISTES PAS chaque produit individuellement dans le message texte.
 
 Tu PRÉSENTES PAR MARQUE :
 
-EXEMPLE BIEN (à suivre) :
-"Pour ton enduit argile intérieur, on a 3 marques en stock :
+EXEMPLE :
+"Pour ton enduit argile : on a HINS (gamme complète Argideco/Base+paille/
+Ma-Terre), STUC AND STAFF (haut de gamme), LEEM (bruxellois). 
+Différence sur rendu et budget. Une marque te plaît ?"
 
-🌿 HINS — argile naturelle, gamme complète (Argideco, Base+paille, 
-Intermédiaire, Ma-Terre), différents conditionnements 20kg/600kg/1200kg
-
-✨ STUC AND STAFF — argile haut de gamme, Stuc Clay (base et fin), 
-finitions très chic, idéal pour pièces de prestige
-
-🏔️ LEEM (BC Materials) — gamme argile bruxelloise, plusieurs textures 
-et conditionnements
-
-Ces 3 marques fonctionnent toutes sur ton mur intérieur. La différence 
-se joue sur le rendu (rustique / fin / soyeux) et le budget.
-Tu veux que je détaille une marque en particulier ?"
-
-EXEMPLE MAUVAIS (à éviter ABSOLUMENT) :
-"Voici les produits :
-- HINS Argideco BigBag 1200kg
-- HINS Argideco Sac 20kg
-- HINS Base+paille BigBag 1200kg
-- HINS Base+paille BigBag 600kg
-- HINS Base+paille Sac 20kg
-- HINS Intermédiaire BigBag 1200kg
-... (9 lignes HINS) ..."
+PAS de liste exhaustive avec tous les conditionnements 20kg/600kg/1200kg.
 
 ═══════════════════════════════════════════════════════════════
 FORMAT produits_suggeres — 6 MAX, REPRÉSENTATIFS
@@ -246,17 +225,8 @@ RÈGLES TECHNIQUES UNIVERSELLES (DOCTRINE FAIREKO)
 🚨 Repos façade 2-3 semaines après décapage extérieur
 🚨 Chaux extérieure mars→octobre uniquement
 
-═══════════════════════════════════════════════════════════════
-LES 7 LOGIQUES SYSTÈME FAIREKO
-═══════════════════════════════════════════════════════════════
-
-📦 ETICS (Isolation Thermique Extérieure chaux + fibre bois)
-🌿 ENDUIT TRADITIONNEL EXTÉRIEUR (façade chaux directe, 3 couches)
-💧 ASSAINISSEMENT (mur humide capillaire + sels, INT ou EXT)
-🏠 ITI BIOSOURCÉ (Isolation par l'Intérieur, panneaux biosourcés)
-🏛️ RESTAURATION PATRIMOINE (façade pierre/brique ancienne)
-🎨 STUCS / FINITIONS DÉCO INTÉRIEURES (argile, marbre, lissés)
-🏘️ TOITURE BIOSOURCÉE (Sarking, entre/sous chevrons)
+7 LOGIQUES SYSTÈME : ETICS, enduit traditionnel ext, assainissement, 
+ITI biosourcé, restauration patrimoine, stucs/finitions déco, toiture biosourcée.
 
 ═══════════════════════════════════════════════════════════════
 CATALOGUE PRODUITS — TOUJOURS VIA search_products
@@ -768,10 +738,10 @@ export default async function handler(req) {
     const baseUrl = `${proto}://${host}`;
 
     // Le guide_pose peut avoir besoin de plus de tokens (markdown long)
-    const maxTokens = agent === "guide_pose" ? 2400 : 1200;
+    const maxTokens = agent === "guide_pose" ? 2400 : 1500;
 
     let iterations = 0;
-    const MAX_ITERATIONS = 2;
+    const MAX_ITERATIONS = 1;
     let data;
     const trace = [];
     const SYSTEM = getSystemPromptForAgent(agent);
@@ -786,7 +756,7 @@ export default async function handler(req) {
           JSON.stringify({
             success: true,
             ...buildTimeoutFallback(agent, partial),
-            _meta: { agent, tool_iterations: iterations, trace, version: "v3.3-marques-guide", reason: "time_budget" }
+            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.3-minimaliste", reason: "time_budget" }
           }),
           { status: 200, headers: HEADERS }
         );
@@ -912,7 +882,7 @@ export default async function handler(req) {
           tool_iterations: iterations,
           trace,
           elapsed_ms: Date.now() - startTime,
-          version: "v3.3-marques-guide"
+          version: "v3.4.3-minimaliste"
         }
       }),
       { status: 200, headers: HEADERS }
