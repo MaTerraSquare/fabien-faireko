@@ -52,7 +52,11 @@ const ODOO_TIMEOUT_MS = 8000;
 // =============================================================================
 // SYSTEM PROMPT COMMUN — règles partagées par les 4 agents
 // =============================================================================
-const SYSTEM_COMMUN = `Tu es Fabien, partenaire FAIRĒKO. Tu accompagnes artisans, architectes et 
+const SYSTEM_COMMUN = `⚠️ FORMAT DE SORTIE OBLIGATOIRE : tu réponds UNIQUEMENT en JSON pur.
+Aucun texte avant le JSON. Aucun texte après. Aucun ```json``` autour.
+Le seul markdown autorisé est À L'INTÉRIEUR du champ "message".
+
+Tu es Fabien, partenaire FAIRĒKO. Tu accompagnes artisans, architectes et 
 particuliers dans leurs projets construction bas carbone et biosourcée en 
 Wallonie et à Bruxelles.
 
@@ -124,6 +128,25 @@ ARTISAN : tutoiement, technique précis, métré matériau direct
 PARTICULIER : vouvoiement, pédagogique, estimation complète, 3 devis comparatifs
 ARCHITECTE : tutoiement pair, CCTP-style, performances cibles, pas de prix
 NÉGOCE : tutoiement commercial, conditionnement palette MOQ
+
+═══════════════════════════════════════════════════════════════
+DÉTECTION DE L'INTENTION RÉELLE
+═══════════════════════════════════════════════════════════════
+
+Si l'utilisateur demande "guide de pose / comment poser / dosage / 
+mise en œuvre / outil / temps de séchage" → c'est une question CHANTIER.
+Tu réponds quand même utilement avec ton expertise mise en œuvre, 
+mais tu suggères en quick_options : "Voir le guide complet → bouton 
+Guide de pose en haut à droite" pour qu'il bascule au bon endroit.
+
+Si l'utilisateur demande "combien ça coûte / prix / quantité / m² / kg" 
+→ c'est une question DEVIS. Réponds avec fourchettes, et suggère de 
+passer en agent Devis & métré.
+
+Pour les questions hybrides (ex: "guide de pose chaux"), tu peux 
+répondre brièvement avec les principes universels chaux + tableau 
+comparatif des chaux NHL si pertinent + suggestion d'aller en 
+agent Conseil chantier pour le détail mise en œuvre.
 
 ═══════════════════════════════════════════════════════════════
 ORDRE D'APPEL DES OUTILS — STRICT
@@ -610,22 +633,36 @@ function getSystemPromptForAgent(agent) {
 function extractJSON(raw) {
   if (!raw || typeof raw !== "string") return null;
   const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
-  const start = cleaned.indexOf("{");
-  if (start === -1) return null;
-  let depth = 0, inString = false, escape = false;
-  for (let i = start; i < cleaned.length; i++) {
-    const c = cleaned[i];
-    if (escape) { escape = false; continue; }
-    if (c === "\\") { escape = true; continue; }
-    if (c === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (c === "{") depth++;
-    if (c === "}") {
-      depth--;
-      if (depth === 0) {
-        try { return JSON.parse(cleaned.slice(start, i + 1)); } catch { return null; }
+  
+  // Parcours TOUS les positions de "{" pour trouver un JSON valide
+  let pos = 0;
+  while (pos < cleaned.length) {
+    const start = cleaned.indexOf("{", pos);
+    if (start === -1) return null;
+    
+    let depth = 0, inString = false, escape = false;
+    for (let i = start; i < cleaned.length; i++) {
+      const c = cleaned[i];
+      if (escape) { escape = false; continue; }
+      if (c === "\\") { escape = true; continue; }
+      if (c === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (c === "{") depth++;
+      if (c === "}") {
+        depth--;
+        if (depth === 0) {
+          try { 
+            const parsed = JSON.parse(cleaned.slice(start, i + 1));
+            // Vérifier que c'est bien notre format Fabien (a au moins "message")
+            if (parsed && typeof parsed === "object" && parsed.message) {
+              return parsed;
+            }
+          } catch { /* essayer position suivante */ }
+          break;
+        }
       }
     }
+    pos = start + 1;
   }
   return null;
 }
@@ -811,6 +848,38 @@ export default async function handler(req) {
 
     let parsed = extractJSON(text);
 
+    // Si JSON invalide MAIS texte présent et long, afficher le texte directement
+    // (Sonnet a peut-être répondu en markdown brut au lieu de JSON pur)
+    if (!parsed && text && text.trim().length > 80) {
+      let cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+      // Supprimer un éventuel objet JSON tronqué au début
+      if (cleaned.startsWith("{")) {
+        const lastBrace = cleaned.lastIndexOf("}");
+        if (lastBrace > 0 && lastBrace < cleaned.length - 1) {
+          cleaned = cleaned.substring(lastBrace + 1).trim();
+        }
+      }
+      parsed = {
+        agent,
+        profil_detecte: "inconnu",
+        message: cleaned,
+        posture: "conseil",
+        produits_suggeres: [],
+        quick_options: [],
+        quick_options_question: "",
+        actions: [
+          { id: "guide", label: "Guide de pose", icon: "📘", enabled: false },
+          { id: "recap", label: "Récap PDF", icon: "📋", enabled: false },
+          { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: false },
+          { id: "expert", label: "Appeler un expert", icon: "📞", enabled: true }
+        ],
+        etape_projet: "diagnostic",
+        sujet_principal: "autre",
+        _raw_fallback: true
+      };
+    }
+
+    // Vrai fallback générique seulement si AUCUN texte du tout
     if (!parsed) {
       parsed = buildFallbackResponse(agent, text);
     }
