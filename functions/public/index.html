@@ -991,7 +991,7 @@ a { color: inherit; text-decoration: none; }
         <!-- FABIEN À DROITE -->
         <div class="fk-fabien-anchor" id="fabien-zone">
           <div class="fk-fabien-placeholder" id="fabien-placeholder">FABIEN</div>
-          <img class="fk-fabien-img" id="fabien-img" src="/fabien/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
+          <img class="fk-fabien-img" id="fabien-img" src="/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
         </div>
       </div>
 
@@ -1086,6 +1086,18 @@ const STORAGE_CONVERSATIONS = 'fk_conversations';
 const STORAGE_PROJECTS = 'fk_projects';
 const STORAGE_CURRENT = 'fk_current';
 
+// Mapping ?s=... → question d'ouverture envoyée à Fabien
+const SUJETS_MAPPING = {
+  'thermwood': 'Je veux configurer un ETICS Thermwood (chaux + fibre bois). Aide-moi à structurer le système.',
+  'iti-chanvre': 'Je veux faire une ITI biosourcée chanvre sur mur ancien. Quel système me conseilles-tu ?',
+  'mur-humide': "J'ai un mur humide à traiter. Aide-moi à diagnostiquer et choisir le bon protocole.",
+  'sarking': 'Je veux faire une isolation toiture en sarking biosourcé. Quel système ?',
+  'cloison': 'Je veux monter une cloison biosourcée intérieure. Quelles options ?',
+  'dalle': 'Je veux faire une dalle isolante avec matériaux biosourcés. Aide-moi.',
+  'enduit-int': 'Je veux faire un enduit intérieur biosourcé. Quel système me conseilles-tu ?',
+  'correction-thermique': 'Je veux faire une correction thermique sur mur intérieur. Quel produit ?'
+};
+
 // État global
 let state = {
   agent: 'prescription',
@@ -1103,6 +1115,7 @@ window.addEventListener('DOMContentLoaded', () => {
   renderProjects();
   renderHistory();
   setupTextareaAutoResize();
+  handleSujetParam(); // Lecture du param ?s=... pour question auto
 });
 
 function loadFromStorage() {
@@ -1117,6 +1130,32 @@ function loadFromStorage() {
 function saveToStorage() {
   localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(state.projects));
   localStorage.setItem(STORAGE_CONVERSATIONS, JSON.stringify(state.conversations));
+}
+
+// ================================================================
+// LECTURE DU PARAMÈTRE ?s=... (depuis Odoo)
+// ================================================================
+function handleSujetParam() {
+  const params = new URLSearchParams(window.location.search);
+  const sujet = params.get('s');
+  if (!sujet) return;
+
+  const question = SUJETS_MAPPING[sujet.toLowerCase()];
+  if (!question) {
+    console.log('Sujet non reconnu : ' + sujet);
+    return;
+  }
+
+  // Délai léger pour laisser l'UI s'afficher avant l'envoi automatique
+  setTimeout(() => {
+    document.getElementById('user-input').value = question;
+    sendMessage();
+    // Nettoyer l'URL pour éviter relancer la question si refresh
+    if (window.history && window.history.replaceState) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, 600);
 }
 
 function showFabien() {
@@ -1152,7 +1191,6 @@ function renderProjects() {
   const count = document.getElementById('projects-count');
   count.textContent = state.projects.length;
 
-  // On garde le bouton "Nouveau projet" en bas
   const projectsHTML = state.projects.map(p => `
     <div class="fk-project-item" data-id="${p.id}">
       <span class="fk-project-emoji">${escapeHtml(p.emoji || '🏠')}</span>
@@ -1184,8 +1222,13 @@ function createProject() {
 }
 
 // Toggle dépliage projets
-document.getElementById('projects-toggle').addEventListener('click', () => {
-  document.getElementById('projects-block').classList.toggle('expanded');
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('projects-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      document.getElementById('projects-block').classList.toggle('expanded');
+    });
+  }
 });
 
 // ================================================================
@@ -1267,7 +1310,6 @@ function renderMessages() {
       const data = msg._fabienData || {};
       let bubble = `<div class="fk-msg-bubble">${escapeHtml(data.message || msg.content || '')}`;
 
-      // Produits
       if (data.produits_suggeres && data.produits_suggeres.length > 0) {
         bubble += `<div class="fk-products">`;
         data.produits_suggeres.forEach(p => {
@@ -1276,7 +1318,6 @@ function renderMessages() {
         bubble += `</div>`;
       }
 
-      // Quick options
       if (data.quick_options && data.quick_options.length > 0) {
         bubble += `<div class="fk-quick-options">`;
         if (data.quick_options_question) {
@@ -1350,11 +1391,9 @@ async function sendMessage() {
   const text = ta.value.trim();
   if (!text) return;
 
-  // Reset welcome si premier message
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.remove();
 
-  // Ajout message user
   state.conversation.push({ role: 'user', content: text });
   ta.value = '';
   ta.style.height = 'auto';
@@ -1362,7 +1401,6 @@ async function sendMessage() {
   renderMessages();
   showTypingIndicator();
 
-  // Désactiver bouton envoi
   document.getElementById('send-btn').disabled = true;
 
   try {
@@ -1387,7 +1425,6 @@ async function sendMessage() {
     const data = await res.json();
     removeTypingIndicator();
 
-    // Stockage réponse complète dans le message
     state.conversation.push({
       role: 'assistant',
       content: data.message || '',
