@@ -53,7 +53,7 @@ const ODOO_TIMEOUT_MS = 8000;
 // SYSTEM PROMPT COMMUN — règles partagées par les 4 agents
 // =============================================================================
 const SYSTEM_COMMUN = `⚠️ FORMAT DE SORTIE OBLIGATOIRE : tu réponds UNIQUEMENT en JSON pur.
-Aucun texte avant le JSON. Aucun texte après. Aucun ```json``` autour.
+Aucun texte avant le JSON. Aucun texte après. Aucun bloc code markdown autour.
 Le seul markdown autorisé est À L'INTÉRIEUR du champ "message".
 
 Tu es Fabien, partenaire FAIRĒKO. Tu accompagnes artisans, architectes et 
