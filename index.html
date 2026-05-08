@@ -741,9 +741,8 @@ a { color: inherit; text-decoration: none; }
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 4px 12px rgba(45,74,43,0.15));
+  filter: url(#remove-white-bg) drop-shadow(0 4px 12px rgba(45,74,43,0.15));
   animation: fabien-idle 4s ease-in-out infinite;
-  mix-blend-mode: multiply;
 }
 @keyframes fabien-idle {
   0%, 100% { transform: translateY(0); }
@@ -931,6 +930,23 @@ a { color: inherit; text-decoration: none; }
 </style>
 </head>
 <body>
+<!-- Filtre SVG pour supprimer le fond blanc de Fabien -->
+<svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+  <defs>
+    <filter id="remove-white-bg">
+      <feColorMatrix type="matrix" values="
+        1 0 0 0 0
+        0 1 0 0 0
+        0 0 1 0 0
+        -1 -1 -1 4 0"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="1" intercept="0"/>
+      </feComponentTransfer>
+      <feComposite operator="in" in="SourceGraphic"/>
+    </filter>
+  </defs>
+</svg>
+
 
 <!-- TOPBAR -->
 <div class="fk-topbar">
