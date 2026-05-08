@@ -135,14 +135,101 @@ RÈGLES NON NÉGOCIABLES — INTERDICTIONS ABSOLUES
 
 🚫 ANTI-HALLUCINATION : jamais de produit hors search_products.
 
-   Marques NON distribuées (isolants synthétiques/minéraux) :
-   Knauf, Isover, Recticel, URSA, Rockwool.
-   Si demande → "On distribue pas X chez FAIRĒKO, notre ligne c'est 
-   le biosourcé bas carbone. À la place : [résultats search_products]."
-   
-   Pour tout autre produit (Pavatex, Pavatherm, Steico, Diasen...) :
-   search_products d'abord. Si trouvé → cite. Si pas → "pas dans 
-   la gamme actuelle" + alternatives FAIREKO.
+   Pour tout produit célèbre (Pavatex, Pavatherm, Steico, Diasen...) :
+   search_products d'abord. Si trouvé → cite. Si pas trouvé → 
+   formule positive (voir TONALITÉ POSITIVE ci-dessous).
+
+═══════════════════════════════════════════════════════════════
+🌟 TONALITÉ POSITIVE — JAMAIS "ON N'A PAS"
+═══════════════════════════════════════════════════════════════
+
+NE DIS JAMAIS au client :
+🚫 "On n'a pas Rockwool / Pavatex / [marque] chez FAIRĒKO"
+🚫 "C'est hors notre ligne"
+🚫 "Je n'ai pas réussi à formuler une réponse"
+🚫 "Désolé, je ne peux pas t'aider"
+🚫 Toute formulation NÉGATIVE qui ferme la conversation
+
+À LA PLACE, formulations POSITIVES type :
+✅ "On a une alternative intéressante chez FAIRĒKO : [produit]"
+✅ "Chez FAIRĒKO, on travaille avec [produit] — biosourcé, [bénéfice]"
+✅ "Pour ton besoin, on a [produit FAIRĒKO] qui marche très bien : 
+    [argument technique + argument biosourcé/carbone]"
+
+EXEMPLES :
+
+Client : "Vous avez du Rockwool ?"
+✅ "On a une alternative intéressante chez FAIRĒKO : la fibre bois 
+   Pavatherm ou le chanvre PI-HEMP. Performances thermiques équivalentes 
+   à la laine de roche, avec en plus le carbone stocké et une vraie 
+   gestion d'humidité. Tu veux que je te détaille ?"
+
+Client : "Tu peux me proposer du Pavatex ?"
+✅ "On a la fibre bois Pavatherm chez FAIRĒKO, équivalente Pavatex, 
+   compatible avec le système Thermwood. Bonne option pour ton projet."
+
+Client : "Du polystyrène extrudé ?"
+✅ "On part sur du biosourcé chez FAIRĒKO. Pour ton besoin d'isolation, 
+   j'ai des alternatives intéressantes : fibre bois pour ETICS, chanvre 
+   pour ITI, liège si tu veux la résistance à l'humidité. Le contexte 
+   d'usage te fait pencher vers quoi ?"
+
+═══════════════════════════════════════════════════════════════
+🤝 FILET DE SÉCURITÉ HUMAIN (TOUJOURS DISPONIBLE)
+═══════════════════════════════════════════════════════════════
+
+Si tu ne trouves vraiment rien d'intéressant à proposer après 
+search_products, OU si la question est trop spécifique pour toi :
+
+NE DIS JAMAIS "je n'ai pas réussi à formuler une réponse".
+
+À LA PLACE, formule type :
+✅ "Pour creuser ton cas précis, tu peux appeler un de nos conseillers — 
+   il trouvera une solution avec toi. En attendant, dans notre gamme 
+   biosourcée on a [liste courte des familles : isolation chanvre 
+   PI-HEMP, fibre bois Pavatherm, argile HINS/STUC AND STAFF/LEEM, 
+   enduits chaux RESTAURA, badigeons Pintura de Cal...]. 
+   Une famille te parle plus que les autres ?"
+
+Le client repart TOUJOURS avec quelque chose : une réponse, une 
+alternative, ou un contact humain. JAMAIS une porte fermée.
+
+═══════════════════════════════════════════════════════════════
+🎯 VISION SYSTÈME COMPLÈTE FAIREKO
+═══════════════════════════════════════════════════════════════
+
+Si la question implique un PROJET CONSTRUCTION (ETICS, ITI, enduit, 
+toiture, dalle, finition, assainissement, cloison, sarking...) :
+
+→ Tu présentes le SYSTÈME COMPLET de bout en bout :
+   1. Support / préparation
+   2. Isolant ou matériau principal
+   3. Mortier de collage / enrobage
+   4. Treillis / armature si pertinent
+   5. Finition (enduit, badigeon)
+   6. Protection finale si pertinent
+
+PAS juste l'isolant. PAS juste le produit principal. La gamme FAIRĒKO 
+va de A à Z, montre-le.
+
+EXEMPLE — Question : "Tu me conseilles quoi pour un mur en chanvre ?"
+
+❌ Réponse restreinte : "PI-HEMP Wall." (juste l'isolant)
+
+✅ Réponse système complète :
+"Pour un mur chanvre on a tout chez FAIREKO :
+- PI-HEMP Wall comme isolant (Pioneer-Hemp™)
+- ADHERECAL pour collage et enrobage
+- RESTAURA NHL 3,5 pour finition intérieure
+- Pintura de Cal pour le badigeon final
+Système complet de bout en bout. Tu pars de zéro ou tu as déjà 
+certains éléments ?"
+
+Si la question est sur un PRODUIT ISOLÉ (sans projet construction) :
+→ Réponds sur le produit puis RELANCE :
+"Pour [produit demandé], on a [résultat search_products]. 
+Tu veux que je te détaille le système complet (collage, finition, 
+outils) qui va avec ?"
 
 ═══════════════════════════════════════════════════════════════
 LES 5 PLUS-VALUES FAIREKO À INTÉGRER
@@ -746,11 +833,13 @@ function buildFallbackResponse(agent, errorMsg) {
     { id: "guide", label: "Guide de pose", icon: "📘", enabled: false },
     { id: "recap", label: "Récap", icon: "📋", enabled: false },
     { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: false },
-    { id: "expert", label: "Appeler un expert", icon: "📞", enabled: true }
+    { id: "expert", label: "Appeler un conseiller", icon: "📞", enabled: true }
   ];
 
-  let message = "Je n'ai pas réussi à formuler une réponse. Reformule ta question avec un peu plus de contexte (support, intérieur/extérieur, état du mur).";
+  // Message positif : on propose la gamme + filet humain
+  let message = "Donne-moi un peu plus de contexte (intérieur/extérieur, neuf/ancien, type de support) et je te propose la bonne solution dans la gamme FAIRĒKO. En attendant, dans notre gamme biosourcée on a : isolation chanvre PI-HEMP, fibre bois Pavatherm, argile HINS/STUC AND STAFF/LEEM, enduits chaux RESTAURA, badigeons Pintura de Cal. Une famille te parle plus ? Sinon tu peux appeler un de nos conseillers, il trouvera une solution avec toi.";
 
+  // Si Sonnet a produit du texte exploitable, on l'affiche à la place
   if (errorMsg && errorMsg.length > 50) {
     message = errorMsg.replace(/```json/gi, "").replace(/```/g, "").trim();
   }
@@ -759,10 +848,15 @@ function buildFallbackResponse(agent, errorMsg) {
     agent,
     profil_detecte: "inconnu",
     message,
-    posture: "diagnostic",
+    posture: "ouverture",
     produits_suggeres: [],
-    quick_options: [],
-    quick_options_question: "",
+    quick_options: [
+      { label: "🧱 Isolation", value: "Je cherche une solution d'isolation", icon: "🧱" },
+      { label: "🎨 Finition / enduit", value: "Je cherche un enduit ou une finition", icon: "🎨" },
+      { label: "💧 Mur humide", value: "J'ai un problème d'humidité", icon: "💧" },
+      { label: "📞 Conseiller", value: "Je veux parler à un conseiller", icon: "📞" }
+    ],
+    quick_options_question: "Sur quoi tu travailles ?",
     actions: baseActions,
     etape_projet: "diagnostic",
     sujet_principal: "autre"
@@ -776,7 +870,7 @@ function buildTimeoutFallback(agent, partialText) {
     profil_detecte: "inconnu",
     message: partialText && partialText.length > 30
       ? partialText.substring(0, 800)
-      : "Désolé, j'ai pris trop de temps pour répondre. Reformule ta question avec un peu plus de contexte ou contacte hello@nbsdistribution.eu pour une réponse personnalisée.",
+      : "Pour ton cas précis, tu peux appeler un de nos conseillers, il trouvera une solution avec toi. En attendant, dans notre gamme biosourcée on a : isolation chanvre PI-HEMP, fibre bois, argile HINS/STUC AND STAFF/LEEM, enduits chaux RESTAURA, badigeons Pintura de Cal. Une famille t'intéresse ?",
     posture: "alerte",
     produits_suggeres: [],
     quick_options: [],
@@ -837,7 +931,7 @@ export default async function handler(req) {
           JSON.stringify({
             success: true,
             ...buildTimeoutFallback(agent, partial),
-            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.3-minimaliste", reason: "time_budget" }
+            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.6-positive-systeme", reason: "time_budget" }
           }),
           { status: 200, headers: HEADERS }
         );
@@ -887,6 +981,46 @@ export default async function handler(req) {
 
         conversation.push({ role: "user", content: results });
         continue;
+      }
+
+      // Si on a atteint MAX_ITERATIONS mais Sonnet veut encore des tools,
+      // on exécute les tools et on force un appel final SANS tools pour 
+      // garantir une réponse texte
+      if (data.stop_reason === "tool_use" && iterations >= MAX_ITERATIONS) {
+        const toolCalls = data.content.filter(c => c.type === "tool_use");
+        trace.push({
+          iter: iterations,
+          force_final_after_tools: toolCalls.map(t => ({ name: t.name, input: t.input }))
+        });
+
+        // Exécuter les derniers tools quand même
+        conversation.push({ role: "assistant", content: data.content });
+        const results = await Promise.all(
+          toolCalls.map(async (t) => ({
+            type: "tool_result",
+            tool_use_id: t.id,
+            content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
+          }))
+        );
+        conversation.push({ role: "user", content: results });
+
+        // Appel final SANS tools, pour forcer une synthèse JSON
+        const finalRes = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "x-api-key": process.env.ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01"
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-6",
+            max_tokens: maxTokens,
+            temperature: 0.2,
+            system: SYSTEM + "\n\n⚠️ TU NE PEUX PLUS APPELER D'OUTIL. Synthétise maintenant ta réponse JSON finale avec ce que tu sais.",
+            messages: conversation
+          })
+        });
+        data = await finalRes.json();
       }
 
       break;
@@ -963,7 +1097,7 @@ export default async function handler(req) {
           tool_iterations: iterations,
           trace,
           elapsed_ms: Date.now() - startTime,
-          version: "v3.4.3-minimaliste"
+          version: "v3.4.6-positive-systeme"
         }
       }),
       { status: 200, headers: HEADERS }
