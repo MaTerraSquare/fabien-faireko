@@ -46,7 +46,7 @@ const HEADERS = {
 };
 
 // Budget temps : Netlify timeout = 26s, on garde 4s de marge
-const TIME_BUDGET_MS = 22000;
+const TIME_BUDGET_MS = 21000;
 const ODOO_TIMEOUT_MS = 8000;
 
 // =============================================================================
@@ -276,24 +276,30 @@ comparatif des chaux NHL si pertinent + suggestion d'aller en
 agent Conseil chantier pour le détail mise en œuvre.
 
 ═══════════════════════════════════════════════════════════════
-OUTILS — UN SEUL APPEL, BIEN CHOISI
+OUTILS — MAX 2 APPELS, RAPIDE ET EFFICACE
 ═══════════════════════════════════════════════════════════════
 
-Tu as MAX 1 tool call. Choisis le bon :
+Tu as MAX 2 cycles d'outils. Sois efficace :
 
-→ Question PRODUITS (quel matériau, quelle marque, quel prix) :
-  search_products(query="mot-clé large", limit=25)
+→ Question PRODUITS (quel matériau, quelle marque) :
+  1 appel : search_products(query="mot-clé large", limit=25)
   Ex : "argile" → toutes marques, "ETICS" → tous systèmes ETICS
 
-→ Question DOCTRINE (comment, pourquoi, principe technique) :
-  search_doctrine(query="mot-clé court", limit=2)
-  Ex : "gobetis", "ITI", "humidite"
+→ Question PROJET CONSTRUCTIF (ETICS, ITI, enduit complet) :
+  Appel 1 : search_products(query="famille principale", limit=25)
+  Appel 2 (si vraiment nécessaire) : search_doctrine OU autre search_products
+  Puis tu SYNTHÉTISES — pas de 3e appel.
 
-→ Question SIMPLE (cadrage, salutation, profil) :
+→ Question DOCTRINE pure (comment, pourquoi, principe) :
+  1 appel : search_doctrine(query="mot-clé court", limit=2)
+
+→ Question SIMPLE (cadrage, salutation) :
   Aucun tool call. Réponds directement.
 
-Après le tool call, tu synthétises et tu rends le JSON.
-Pas de 2e tool call. Pas de get_product_details.
+⚠️ TOUJOURS SYNTHÉTISER après les tool calls. Ne demande pas un 
+3e appel — utilise ce que tu as. Si tu n'as pas trouvé exactement 
+ce qu'il fallait, propose les alternatives FAIRĒKO trouvées + 
+suggère "appeler un de nos conseillers".
 
 ═══════════════════════════════════════════════════════════════
 FORMAT DU MESSAGE — PRÉSENTATION PAR MARQUE (TRÈS IMPORTANT)
@@ -913,10 +919,10 @@ export default async function handler(req) {
     const baseUrl = `${proto}://${host}`;
 
     // Le guide_pose peut avoir besoin de plus de tokens (markdown long)
-    const maxTokens = agent === "guide_pose" ? 2400 : 1500;
+    const maxTokens = agent === "guide_pose" ? 2400 : 1300;
 
     let iterations = 0;
-    const MAX_ITERATIONS = 1;
+    const MAX_ITERATIONS = 2;
     let data;
     const trace = [];
     const SYSTEM = getSystemPromptForAgent(agent);
@@ -931,7 +937,7 @@ export default async function handler(req) {
           JSON.stringify({
             success: true,
             ...buildTimeoutFallback(agent, partial),
-            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.6-positive-systeme", reason: "time_budget" }
+            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.7-iter2-balanced", reason: "time_budget" }
           }),
           { status: 200, headers: HEADERS }
         );
@@ -1097,7 +1103,7 @@ export default async function handler(req) {
           tool_iterations: iterations,
           trace,
           elapsed_ms: Date.now() - startTime,
-          version: "v3.4.6-positive-systeme"
+          version: "v3.4.7-iter2-balanced"
         }
       }),
       { status: 200, headers: HEADERS }
