@@ -1,1123 +1,1834 @@
-/**
- * =============================================================================
- * FAIRĒKO · Fabien — IA prescription bas carbone et biosourcée
- * =============================================================================
- *
- * Fichier  : functions/fabien-v2.mjs
- * Route    : /api/fabien-v2 (inchangée)
- * Version  : 3.3  —  07 mai 2026
- *
- * PATCH V3.3 vs V3.2
- * ------------------
- *   1. PRÉSENTATION PAR MARQUE (au lieu de liste exhaustive de variantes)
- *      Le message regroupe les produits par marque avec descriptif court.
- *      produits_suggeres limité à 6 max (2 par marque environ).
- *
- *   2. ANTI-HALLUCINATION RENFORCÉE
- *      Règle stricte : si search_products ne retourne PAS un produit, 
- *      Fabien ne le cite JAMAIS, même si c'est un produit célèbre qu'il 
- *      connaît d'ailleurs (Pavatherm, Steico, Diasen, etc.).
- *      Si l'utilisateur demande un produit absent, Fabien répond 
- *      honnêtement : "Pas dans la gamme FAIRĒKO actuelle, à la place..."
- *
- *   3. NOUVEL AGENT "guide_pose"
- *      Quand l'utilisateur clique sur le bouton "Guide de pose" du chat, 
- *      Fabien V3.3 active l'agent guide_pose qui :
- *      - Récupère get_product_details des produits cités (avec PDF text)
- *      - Cherche dans Knowledge la doctrine technique correspondante
- *      - Synthétise un guide étape par étape inline dans le chat
- *
- *   4. NOUVEAU TOOL : search_brands
- *      Permet à Fabien de trouver toutes les marques d'une catégorie 
- *      (ex: toutes les marques d'argile = HINS, STUC AND STAFF, LEEM).
- *
- * Variables d'environnement Netlify (existantes, inchangées)
- * ----------------------------------------------------------
- *   ANTHROPIC_API_KEY
- *   ODOO_URL, ODOO_DB, ODOO_UID, ODOO_LOGIN, ODOO_API_KEY
- * =============================================================================
- */
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="description" content="Fabien — l'IA construction bas carbone et biosourcée FAIRĒKO" />
+<title>Fabien — L'IA construction bas carbone et biosourcée</title>
 
-const HEADERS = {
-  "Content-Type": "application/json",
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+<link rel="icon" type="image/png" href="/favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ================================================================
+   TOKENS DE DESIGN FAIREKO
+   ================================================================ */
+:root {
+  --fk-vert-fonce: #2d4a2b;
+  --fk-vert-mousse: #5a7548;
+  --fk-vert-sauge: #8ba888;
+  --fk-creme: #f5f1e8;
+  --fk-blanc-casse: #fafaf7;
+  --fk-terre: #b08968;
+  --fk-bois: #8b6f47;
+  --fk-pierre: #d4cfc4;
+  --fk-charbon: #1a1a17;
+  --fk-gris-doux: #6b6b66;
+  --fk-bordure: #e8e3d6;
+  --fk-success: #4a7c4a;
+  --fk-danger: #a83838;
+
+  --fk-font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --fk-font-serif: "Playfair Display", Georgia, serif;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --sp-12: 48px;
+
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
+
+  --shadow-sm: 0 1px 2px rgba(26,26,23,0.05);
+  --shadow-md: 0 2px 8px rgba(26,26,23,0.08);
+  --shadow-lg: 0 8px 24px rgba(26,26,23,0.12);
+
+  --tr-fast: 150ms ease;
+  --tr-normal: 250ms ease;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: var(--fk-font-sans);
+  color: var(--fk-charbon);
+  background: var(--fk-blanc-casse);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; font-size: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* ================================================================
+   TOPBAR
+   ================================================================ */
+.fk-topbar {
+  height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-5);
+  font-size: 13px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.fk-topbar-back {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-creme);
+  transition: opacity var(--tr-fast);
+}
+.fk-topbar-back:hover { opacity: 0.8; }
+.fk-topbar-spacer { flex: 1; }
+.fk-topbar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  opacity: 0.8;
+}
+.fk-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #7fb87f;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ================================================================
+   LAYOUT PRINCIPAL
+   ================================================================ */
+.fk-app {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  height: calc(100vh - 36px);
+  width: 100vw;
+}
+
+/* ================================================================
+   SIDEBAR GAUCHE
+   ================================================================ */
+.fk-sidebar-left {
+  background: var(--fk-creme);
+  border-right: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.fk-brand {
+  padding: var(--sp-5) var(--sp-5) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  border-bottom: 1px solid var(--fk-bordure);
+}
+.fk-brand-logo {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-weight: 700;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.fk-brand-name {
+  font-family: var(--fk-font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+}
+.fk-brand-tagline {
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  margin-top: 1px;
+  line-height: 1.2;
+}
+.fk-new-chat {
+  margin: var(--sp-4) var(--sp-4) var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+}
+.fk-new-chat:hover { background: var(--fk-charbon); }
+
+.fk-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
+}
+
+/* PROJETS DÉPLIABLES */
+.fk-projects-block { margin-bottom: var(--sp-3); }
+.fk-projects-toggle {
+  width: 100%;
+  padding: var(--sp-3) var(--sp-3);
+  background: transparent;
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background var(--tr-fast);
+}
+.fk-projects-toggle:hover { background: rgba(45,74,43,0.08); }
+.fk-projects-icon {
+  width: 22px; height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-projects-label { flex: 1; text-align: left; }
+.fk-projects-count {
+  font-size: 11px;
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.fk-projects-chevron {
+  width: 16px; height: 16px;
+  color: var(--fk-gris-doux);
+  transition: transform var(--tr-normal);
+  flex-shrink: 0;
+  margin-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-chevron { transform: rotate(90deg); }
+.fk-projects-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding-left: var(--sp-1);
+}
+.fk-projects-block.expanded .fk-projects-list { max-height: 500px; }
+.fk-projects-list-inner {
+  padding: var(--sp-1) 0 var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fk-project-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-sm);
+  color: var(--fk-charbon);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-left: var(--sp-3);
+  border-left: 2px solid var(--fk-bordure);
+  padding-left: var(--sp-3);
+}
+.fk-project-item:hover {
+  background: rgba(176,137,104,0.12);
+  border-left-color: var(--fk-terre);
+}
+.fk-project-item.active {
+  background: rgba(176,137,104,0.18);
+  border-left-color: var(--fk-terre);
+  font-weight: 500;
+}
+.fk-project-emoji { font-size: 14px; flex-shrink: 0; }
+.fk-project-text {
+  flex: 1; min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fk-project-conv-count {
+  font-size: 10px;
+  color: var(--fk-gris-doux);
+  flex-shrink: 0;
+}
+.fk-project-new {
+  margin: var(--sp-2) var(--sp-3) 0;
+  padding: var(--sp-2) var(--sp-3);
+  background: transparent;
+  border: 1.5px dashed var(--fk-pierre);
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  font-size: 12px;
+  font-weight: 500;
+  transition: all var(--tr-fast);
+}
+.fk-project-new:hover {
+  border-color: var(--fk-vert-mousse);
+  color: var(--fk-vert-fonce);
+  background: white;
+}
+
+/* HISTORIQUE */
+.fk-history-section { margin-top: var(--sp-3); }
+.fk-history-label {
+  padding: 0 var(--sp-3) var(--sp-2);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.fk-history-empty {
+  padding: var(--sp-3);
+  font-size: 12px;
+  color: var(--fk-gris-doux);
+  font-style: italic;
+}
+.fk-history-item {
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--fk-charbon);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background var(--tr-fast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+.fk-history-item:hover { background: rgba(45,74,43,0.08); }
+.fk-history-item.active {
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  font-weight: 500;
+}
+.fk-history-item-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* PIED SIDEBAR */
+.fk-sidebar-footer {
+  border-top: 1px solid var(--fk-bordure);
+  padding: var(--sp-3);
+}
+.fk-help-link {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: 13px;
+  color: var(--fk-gris-doux);
+  border-radius: var(--r-md);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: background var(--tr-fast);
+  cursor: pointer;
+}
+.fk-help-link:hover {
+  background: rgba(45,74,43,0.06);
+  color: var(--fk-vert-fonce);
+}
+
+/* ================================================================
+   ZONE CENTRALE — CHAT
+   ================================================================ */
+.fk-main {
+  display: flex;
+  flex-direction: column;
+  background: var(--fk-blanc-casse);
+  overflow: hidden;
+  position: relative;
+}
+.fk-chat-header {
+  padding: var(--sp-4) var(--sp-6);
+  border-bottom: 1px solid var(--fk-bordure);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--fk-blanc-casse);
+}
+.fk-current-agent { display: flex; align-items: center; gap: var(--sp-3); }
+.fk-current-agent-icon {
+  width: 28px; height: 28px;
+  background: var(--fk-vert-mousse);
+  border-radius: var(--r-sm);
+  color: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.fk-current-agent-name { font-weight: 600; color: var(--fk-vert-fonce); }
+.fk-current-agent-sub { font-size: 12px; color: var(--fk-gris-doux); }
+.fk-chat-actions { display: flex; gap: var(--sp-2); }
+.fk-icon-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-icon-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
+
+.fk-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--sp-6) 0;
+}
+
+/* ACCUEIL */
+.fk-welcome {
+  max-width: 760px;
+  margin: var(--sp-10) auto var(--sp-6);
+  padding: 0 var(--sp-6);
+  text-align: center;
+}
+.fk-welcome-title {
+  font-family: var(--fk-font-serif);
+  font-size: 38px;
+  font-weight: 700;
+  color: var(--fk-vert-fonce);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--sp-3);
+}
+.fk-welcome-subtitle {
+  font-size: 16px;
+  color: var(--fk-gris-doux);
+  max-width: 540px;
+  margin: 0 auto var(--sp-8);
+  line-height: 1.6;
+}
+.fk-suggestions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  max-width: 680px;
+  margin: 0 auto;
+}
+.fk-suggestion {
+  padding: var(--sp-4);
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  text-align: left;
+  transition: all var(--tr-fast);
+  cursor: pointer;
+}
+.fk-suggestion:hover {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-creme);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.fk-suggestion-icon { font-size: 20px; margin-bottom: var(--sp-2); }
+.fk-suggestion-title { font-size: 14px; font-weight: 600; color: var(--fk-vert-fonce); margin-bottom: 2px; }
+.fk-suggestion-desc { font-size: 13px; color: var(--fk-gris-doux); line-height: 1.4; }
+
+/* MESSAGES */
+.fk-msg {
+  max-width: 760px;
+  margin: 0 auto var(--sp-5);
+  padding: 0 var(--sp-6);
+  display: flex;
+  gap: var(--sp-3);
+}
+.fk-msg-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+.fk-msg.user .fk-msg-avatar {
+  background: var(--fk-terre);
+  color: white;
+}
+.fk-msg.assistant .fk-msg-avatar {
+  background: var(--fk-vert-mousse);
+  color: var(--fk-creme);
+}
+.fk-msg-bubble {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  font-size: 14.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.fk-msg.user .fk-msg-bubble {
+  background: var(--fk-creme);
+  border-color: transparent;
+}
+
+/* QUICK OPTIONS */
+.fk-quick-options {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-quick-question {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fk-vert-fonce);
+  margin-bottom: var(--sp-2);
+  width: 100%;
+}
+.fk-quick-btn {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-creme);
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  font-size: 13px;
+  color: var(--fk-charbon);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: all var(--tr-fast);
+}
+.fk-quick-btn:hover {
+  background: white;
+  border-color: var(--fk-vert-mousse);
+  transform: translateY(-1px);
+}
+
+/* PRODUITS */
+.fk-products {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.fk-product-card {
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--fk-vert-sauge);
+  color: var(--fk-vert-fonce);
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+
+/* MARKDOWN RENDU (guide de pose) */
+.fk-msg-bubble h1 {
+  font-family: var(--fk-font-serif);
+  font-size: 22px;
+  color: var(--fk-vert-fonce);
+  margin: var(--sp-2) 0 var(--sp-4);
+  letter-spacing: -0.01em;
+}
+.fk-msg-bubble h2 {
+  font-size: 17px;
+  color: var(--fk-vert-fonce);
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-weight: 700;
+}
+.fk-msg-bubble h3 {
+  font-size: 15px;
+  color: var(--fk-charbon);
+  margin: var(--sp-3) 0 var(--sp-1);
+  font-weight: 600;
+}
+.fk-msg-bubble strong { color: var(--fk-vert-fonce); font-weight: 600; }
+.fk-msg-bubble em { color: var(--fk-bois); font-style: italic; }
+.fk-msg-bubble ul {
+  margin: var(--sp-2) 0;
+  padding-left: var(--sp-5);
+  list-style: none;
+}
+.fk-msg-bubble ul li {
+  position: relative;
+  margin-bottom: var(--sp-1);
+  padding-left: var(--sp-3);
+}
+.fk-msg-bubble ul li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  color: var(--fk-vert-mousse);
+  font-weight: 700;
+}
+.fk-msg-bubble code {
+  background: var(--fk-creme);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 13px;
+  color: var(--fk-vert-fonce);
+}
+.fk-msg-bubble.prescription {
+  background: linear-gradient(180deg, white 0%, var(--fk-blanc-casse) 100%);
+  border-left: 3px solid var(--fk-bois);
+}
+.fk-msg-bubble table {
+  border-collapse: collapse;
+  margin: var(--sp-3) 0;
+  width: 100%;
+  font-size: 13px;
+  background: white;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.fk-msg-bubble table th {
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.fk-msg-bubble table td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--fk-bordure);
+  vertical-align: top;
+}
+.fk-msg-bubble table tr:last-child td {
+  border-bottom: none;
+}
+.fk-msg-bubble table tr:nth-child(even) td {
+  background: var(--fk-blanc-casse);
+}
+.fk-msg-bubble.guide-pose {
+  background: linear-gradient(180deg, white 0%, var(--fk-blanc-casse) 100%);
+  border-left: 3px solid var(--fk-vert-mousse);
+}
+
+/* INDICATEUR FRAPPE */
+.fk-typing {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--sp-2) 0;
+}
+.fk-typing-dot {
+  width: 7px; height: 7px;
+  background: var(--fk-vert-mousse);
+  border-radius: 50%;
+  animation: typing 1.4s infinite ease-in-out;
+}
+.fk-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.fk-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ================================================================
+   BARRE DE SAISIE + FABIEN
+   ================================================================ */
+.fk-input-zone {
+  padding: var(--sp-3) var(--sp-6) var(--sp-4);
+  background: var(--fk-blanc-casse);
+  position: relative;
+}
+.fk-input-container {
+  max-width: 760px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-3);
+}
+.fk-input-box {
+  flex: 1;
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.fk-input-box:focus-within {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: 0 0 0 3px rgba(90,117,72,0.12);
+}
+.fk-input-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 200px;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--fk-charbon);
+  background: transparent;
+  padding: var(--sp-2) var(--sp-1);
+}
+.fk-input-textarea::placeholder { color: var(--fk-gris-doux); }
+.fk-input-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--fk-bordure);
+}
+.fk-input-tools { display: flex; gap: var(--sp-1); }
+.fk-tool-btn {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  color: var(--fk-gris-doux);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tr-fast);
+}
+.fk-tool-btn:hover { background: var(--fk-creme); color: var(--fk-vert-fonce); }
+.fk-send-btn {
+  width: 36px; height: 36px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--tr-fast);
+}
+.fk-send-btn:hover { background: var(--fk-charbon); }
+.fk-send-btn:disabled { background: var(--fk-pierre); cursor: not-allowed; }
+
+/* FABIEN À DROITE BARRE */
+.fk-fabien-anchor {
+  width: 138px;
+  height: 200px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+.fk-fabien-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  filter: url(#remove-white-bg) drop-shadow(0 4px 12px rgba(45,74,43,0.15));
+  animation: fabien-idle 4s ease-in-out infinite;
+}
+@keyframes fabien-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+.fk-fabien-placeholder {
+  width: 125px;
+  height: 190px;
+  background: linear-gradient(180deg, var(--fk-vert-sauge) 0%, var(--fk-vert-mousse) 100%);
+  border-radius: 50% 50% 20% 20%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18px;
+  color: var(--fk-creme);
+  font-family: var(--fk-font-serif);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* DISCLAIMER */
+.fk-disclaimer-zone {
+  text-align: center;
+  margin-top: var(--sp-2);
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--fk-gris-doux);
+  line-height: 1.5;
+}
+.fk-disclaimer-zone a {
+  color: var(--fk-gris-doux);
+  text-decoration: underline;
+  text-decoration-color: var(--fk-pierre);
+  text-underline-offset: 2px;
+}
+.fk-disclaimer-zone a:hover { color: var(--fk-vert-fonce); }
+.fk-disclaimer-sep { margin: 0 var(--sp-2); opacity: 0.4; }
+
+/* ================================================================
+   SIDEBAR DROITE — AGENTS + ACTIONS
+   ================================================================ */
+.fk-sidebar-right {
+  background: var(--fk-creme);
+  border-left: 1px solid var(--fk-bordure);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: var(--sp-5) var(--sp-4);
+  gap: var(--sp-5);
+}
+.fk-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fk-gris-doux);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--sp-3);
+  padding: 0 var(--sp-2);
+}
+.fk-agents { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-agent-card {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  cursor: pointer;
+  transition: all var(--tr-fast);
+  position: relative;
+}
+.fk-agent-card:hover {
+  border-color: var(--fk-vert-mousse);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.fk-agent-card.active {
+  border-color: var(--fk-vert-fonce);
+  background: white;
+  box-shadow: 0 0 0 2px var(--fk-vert-fonce);
+}
+.fk-agent-card.active::after {
+  content: '✓';
+  position: absolute;
+  top: 10px; right: 12px;
+  width: 18px; height: 18px;
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.fk-agent-header { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-2); }
+.fk-agent-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.fk-agent-icon.expert { background: rgba(45,74,43,0.12); }
+.fk-agent-icon.chantier { background: rgba(176,137,104,0.18); }
+.fk-agent-icon.devis { background: rgba(139,168,136,0.25); }
+.fk-agent-name { font-weight: 600; font-size: 14px; color: var(--fk-vert-fonce); }
+.fk-agent-desc { font-size: 12px; color: var(--fk-gris-doux); line-height: 1.4; }
+
+/* ACTIONS */
+.fk-actions { display: flex; flex-direction: column; gap: var(--sp-2); }
+.fk-action-btn {
+  background: white;
+  border: 1px solid var(--fk-bordure);
+  border-radius: var(--r-md);
+  padding: var(--sp-3);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  transition: all var(--tr-fast);
+  text-align: left;
+  width: 100%;
+}
+.fk-action-btn:hover:not(:disabled) {
+  border-color: var(--fk-vert-mousse);
+  background: var(--fk-blanc-casse);
+  transform: translateY(-1px);
+}
+.fk-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.fk-action-icon {
+  width: 32px; height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--fk-creme);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-vert-fonce);
+  flex-shrink: 0;
+}
+.fk-action-content { flex: 1; }
+.fk-action-label { font-size: 13px; font-weight: 600; color: var(--fk-charbon); }
+.fk-action-desc { font-size: 11px; color: var(--fk-gris-doux); margin-top: 1px; }
+
+.fk-mail-link {
+  background: var(--fk-vert-fonce);
+  color: var(--fk-creme);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 13px;
+  font-weight: 500;
+  justify-content: center;
+  transition: background var(--tr-fast);
+  margin-top: auto;
+}
+.fk-mail-link:hover { background: var(--fk-charbon); }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--fk-pierre); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--fk-gris-doux); }
+
+.ico { width: 18px; height: 18px; stroke-width: 1.8; }
+.ico-sm { width: 14px; height: 14px; stroke-width: 1.8; }
+
+@media (max-width: 1280px) {
+  .fk-app { grid-template-columns: 240px 1fr 300px; }
+  .fk-fabien-anchor { width: 113px; height: 175px; }
+}
+@media (max-width: 1024px) {
+  .fk-app { grid-template-columns: 1fr; }
+  .fk-sidebar-left, .fk-sidebar-right { display: none; }
+  .fk-fabien-anchor { width: 80px; height: 120px; position: absolute; right: 12px; bottom: 90px; pointer-events: none; z-index: 5; }
+  .fk-input-container { padding-right: 0; }
+}
+</style>
+</head>
+<body>
+<!-- Filtre SVG pour supprimer le fond blanc de Fabien -->
+<svg width="0" height="0" style="position:absolute;" aria-hidden="true">
+  <defs>
+    <filter id="remove-white-bg">
+      <!-- 1. Convertir le blanc en transparent avec tolérance -->
+      <feColorMatrix type="matrix" values="
+        1 0 0 0 0
+        0 1 0 0 0
+        0 0 1 0 0
+        -1 -1 -1 4 0"/>
+      <!-- 2. Inverser pour que le blanc devienne le canal alpha -->
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="1" intercept="0"/>
+      </feComponentTransfer>
+      <!-- 3. Reprendre l'image originale et la masquer -->
+      <feComposite operator="in" in="SourceGraphic"/>
+    </filter>
+  </defs>
+</svg>
+
+
+<!-- TOPBAR -->
+<div class="fk-topbar">
+  <a href="https://www.faireko.be" class="fk-topbar-back">
+    <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Retour à FAIREKO.be
+  </a>
+  <div class="fk-topbar-spacer"></div>
+  <div class="fk-topbar-status">
+    <span class="fk-status-dot"></span>
+    <span id="status-text">Fabien · Connecté</span>
+  </div>
+</div>
+
+<div class="fk-app">
+
+  <!-- SIDEBAR GAUCHE -->
+  <aside class="fk-sidebar-left">
+    <div class="fk-brand">
+      <div class="fk-brand-logo">F</div>
+      <div>
+        <div class="fk-brand-name">Fabien</div>
+        <div class="fk-brand-tagline">L'IA construction bas carbone et biosourcée</div>
+      </div>
+    </div>
+
+    <button class="fk-new-chat" onclick="startNewConversation()">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouvelle conversation
+    </button>
+
+    <div class="fk-sidebar-scroll">
+
+      <!-- PROJETS DÉPLIABLES -->
+      <div class="fk-projects-block expanded" id="projects-block">
+        <button class="fk-projects-toggle" id="projects-toggle">
+          <span class="fk-projects-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </span>
+          <span class="fk-projects-label">Mes projets</span>
+          <span class="fk-projects-count" id="projects-count">0</span>
+          <svg class="fk-projects-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <div class="fk-projects-list">
+          <div class="fk-projects-list-inner" id="projects-list">
+            <button class="fk-project-new" onclick="createProject()">
+              <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nouveau projet
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORIQUE -->
+      <div class="fk-history-section">
+        <div class="fk-history-label">Conversations</div>
+        <div id="history-list">
+          <div class="fk-history-empty">Aucune conversation pour le moment</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="fk-sidebar-footer">
+      <div class="fk-help-link">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Aide & assistance
+      </div>
+    </div>
+  </aside>
+
+  <!-- ZONE CENTRALE -->
+  <main class="fk-main">
+    <header class="fk-chat-header">
+      <div class="fk-current-agent">
+        <div class="fk-current-agent-icon">⚖️</div>
+        <div>
+          <div class="fk-current-agent-name" id="current-agent-name">Aide à la décision</div>
+          <div class="fk-current-agent-sub" id="current-agent-sub">Compare les solutions, met en lumière les compromis, aide à trancher.</div>
+        </div>
+      </div>
+      <div class="fk-chat-actions">
+        <button class="fk-icon-btn" title="Plus d'options">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <div class="fk-messages" id="messages">
+      <div class="fk-welcome" id="welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+        <div class="fk-suggestions">
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🧱</div>
+            <div class="fk-suggestion-title">ITI mur ancien biosourcé</div>
+            <div class="fk-suggestion-desc">Brique pleine + chanvre — quelle stratification ?</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🔥</div>
+            <div class="fk-suggestion-title">Comparer 2 isolants</div>
+            <div class="fk-suggestion-desc">PI-HEMP Wall vs fibre de bois</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">🏠</div>
+            <div class="fk-suggestion-title">Enduit chaux extérieur</div>
+            <div class="fk-suggestion-desc">Stratification gobetis → corps → finition</div>
+          </button>
+          <button class="fk-suggestion" onclick="sendSuggestion(this)">
+            <div class="fk-suggestion-icon">💧</div>
+            <div class="fk-suggestion-title">Mur humide cave</div>
+            <div class="fk-suggestion-desc">Diagnostic + solution assainissement</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="fk-input-zone">
+      <div class="fk-input-container">
+        <div class="fk-input-box">
+          <textarea
+            class="fk-input-textarea"
+            id="user-input"
+            placeholder="Posez votre question à Fabien…"
+            rows="1"
+            onkeydown="handleKeydown(event)"></textarea>
+          <div class="fk-input-toolbar">
+            <div class="fk-input-tools">
+              <button class="fk-tool-btn" title="Joindre un fichier" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Photo" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Lien" disabled>
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+              <button class="fk-tool-btn" title="Dictée vocale" id="voice-btn" onclick="toggleVoiceInput()">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+              </button>
+            </div>
+            <button class="fk-send-btn" id="send-btn" onclick="sendMessage()" title="Envoyer">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- FABIEN À DROITE -->
+        <div class="fk-fabien-anchor" id="fabien-zone">
+          <div class="fk-fabien-placeholder" id="fabien-placeholder">FABIEN</div>
+          <img class="fk-fabien-img" id="fabien-img" src="/fabien/FAIREKO_FABIEN_06_tablette-SSFOND.webp" alt="Fabien" style="display:none;" onload="showFabien()" onerror="this.remove()" />
+        </div>
+      </div>
+
+      <div class="fk-disclaimer-zone">
+        Fabien est un système d'IA et peut commettre des erreurs. Vérifiez les informations critiques (λ, μ, classements feu) auprès des fiches techniques officielles.
+        <br/>
+        <a href="/legal/privacy">Politique de confidentialité</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="/legal/terms">Conditions d'utilisation</a>
+        <span class="fk-disclaimer-sep">·</span>
+        <a href="https://www.faireko.be">faireko.be</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- SIDEBAR DROITE -->
+  <aside class="fk-sidebar-right">
+    <div>
+      <div class="fk-panel-title">Choisir un partenaire</div>
+      <div class="fk-agents">
+        <div class="fk-agent-card active" data-agent="prescription" data-name="Aide à la décision" data-desc="Compare les solutions, met en lumière les compromis, aide à trancher." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon expert">⚖️</div>
+            <div class="fk-agent-name">Aide à la décision</div>
+          </div>
+          <div class="fk-agent-desc">Compare les solutions, met en lumière les compromis, aide à trancher.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="chantier" data-name="Conseil chantier" data-desc="Mise en œuvre, dosages, ordres de couches, pathologies humidité." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon chantier">🔧</div>
+            <div class="fk-agent-name">Conseil chantier</div>
+          </div>
+          <div class="fk-agent-desc">Mise en œuvre, dosages, ordres de couches, pathologies humidité.</div>
+        </div>
+        <div class="fk-agent-card" data-agent="devis" data-name="Devis & métré" data-desc="Calcul de quantités, comparaison fournisseurs, chiffrage rapide." onclick="selectAgent(this)">
+          <div class="fk-agent-header">
+            <div class="fk-agent-icon devis">📋</div>
+            <div class="fk-agent-name">Devis & métré</div>
+          </div>
+          <div class="fk-agent-desc">Calcul de quantités, comparaison fournisseurs, chiffrage rapide.</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="fk-panel-title">Actions FAIREKO</div>
+      <div class="fk-actions">
+        <button class="fk-action-btn" id="action-recap" onclick="exportConversation()" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Exporter en PDF</div>
+            <div class="fk-action-desc">Toute la conversation</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-guide" onclick="requestGuidePose()" disabled>
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Guide de pose</div>
+            <div class="fk-action-desc">Pas-à-pas chantier</div>
+          </div>
+        </button>
+        <button class="fk-action-btn" id="action-devis" onclick="requestDevis()">
+          <div class="fk-action-icon">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="fk-action-content">
+            <div class="fk-action-label">Devis FAIREKO</div>
+            <div class="fk-action-desc">Chiffrage des produits</div>
+          </div>
+        </button>
+      </div>
+    </div>
+
+    <a href="mailto:hello@nbsdistribution.eu?subject=Demande%20depuis%20Fabien" class="fk-mail-link">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Contacter un humain
+    </a>
+  </aside>
+
+</div>
+
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const API_ENDPOINT = '/api/fabien-v2';
+const STORAGE_CONVERSATIONS = 'fk_conversations';
+const STORAGE_PROJECTS = 'fk_projects';
+const STORAGE_CURRENT = 'fk_current';
+
+// Mapping ?s=... → question d'ouverture envoyée à Fabien
+const SUJETS_MAPPING = {
+  'thermwood': 'Je veux configurer un ETICS Thermwood (chaux + fibre bois). Aide-moi à structurer le système.',
+  'iti-chanvre': 'Je veux faire une ITI biosourcée chanvre sur mur ancien. Quel système me conseilles-tu ?',
+  'mur-humide': "J'ai un mur humide à traiter. Aide-moi à diagnostiquer et choisir le bon protocole.",
+  'sarking': 'Je veux faire une isolation toiture en sarking biosourcé. Quel système ?',
+  'cloison': 'Je veux monter une cloison biosourcée intérieure. Quelles options ?',
+  'dalle': 'Je veux faire une dalle isolante avec matériaux biosourcés. Aide-moi.',
+  'enduit-int': 'Je veux faire un enduit intérieur biosourcé. Quel système me conseilles-tu ?',
+  'correction-thermique': 'Je veux faire une correction thermique sur mur intérieur. Quel produit ?'
 };
 
-// Budget temps : Netlify timeout = 26s, on garde 4s de marge
-const TIME_BUDGET_MS = 21000;
-const ODOO_TIMEOUT_MS = 8000;
-
-// =============================================================================
-// SYSTEM PROMPT COMMUN — règles partagées par les 4 agents
-// =============================================================================
-const SYSTEM_COMMUN = `⚠️ FORMAT DE SORTIE OBLIGATOIRE : tu réponds UNIQUEMENT en JSON pur.
-Aucun texte avant le JSON. Aucun texte après. Aucun bloc code markdown autour.
-Le seul markdown autorisé est À L'INTÉRIEUR du champ "message".
-
-Tu es Fabien, partenaire FAIRĒKO. Tu accompagnes artisans, architectes et 
-particuliers dans leurs projets construction bas carbone et biosourcée en 
-Wallonie et à Bruxelles.
-
-═══════════════════════════════════════════════════════════════
-🌟 PRINCIPE FONDATEUR FAIRĒKO — À LIRE AVANT TOUT
-═══════════════════════════════════════════════════════════════
-
-LA NORME N'EST PAS LA VÉRITÉ.
-La vérité, ce sont les gens qui avancent, qui innovent, qui trouvent 
-des solutions — qui DEVIENNENT la norme. L'inverse n'existe pas.
-
-CONSÉQUENCES POUR TOUTE TA POSTURE :
-
-1. UNE NORME (ETA, ATG, NIT, NBN, EAD) = UN CADRE VALIDÉ À UN INSTANT T,
-   pas une vérité technique absolue. Sortir du cadre n'est PAS une 
-   erreur — c'est une analyse au cas par cas.
-
-2. NORMÉ vs HORS NORMÉ = différence d'OPPOSABILITÉ JURIDIQUE
-   (CCTP, permis classé, garantie décennale en cas de litige).
-   PAS différence de performance technique. Une fibre bois 
-   meilleure que la spec Annex 1 reste meilleure, même hors liste.
-
-3. LA NORME SUIT L'INNOVATION, JAMAIS L'INVERSE.
-   Chanvre, argile, ETICS chaux, paille porteuse : tous étaient 
-   hors cadre avant d'être normés. Sans innovation, pas de norme 
-   qui se renouvelle.
-
-4. TON RÔLE = OUVRIR LE CHAMP DES POSSIBLES, PAS LE FERMER.
-   - Cite la solution normée en premier (rassurant, opposable)
-   - Propose AUSSI les alternatives qui peuvent marcher
-   - Explique les vraies différences (opposabilité, pas performance)
-   - Laisse le client choisir avec son intelligence du contexte
-
-🚫 INTERDITS ABSOLUS (s'applique partout, pas que ETA) :
-- Dire "ça ne fonctionne pas" pour un système hors norme
-- Qualifier une norme comme "obligatoire" sauf CCTP/permis classé
-- Fermer une discussion par "il n'y a que cette solution"
-- Citer "faible/moyen/standard" pour qualifier une innovation
-- Présenter la norme comme la vérité technique absolue
-
-⚠️ Cette règle vient AVANT toutes les autres règles techniques 
-qui suivent. C'est la POSTURE FAIRĒKO.
-
-═══════════════════════════════════════════════════════════════
-LANGUE & TON
-═══════════════════════════════════════════════════════════════
-- Français, tu tutoies (ou vouvoies si profil = particulier)
-- Ton chantier wallon : direct, concret, naturel
-- Tu écris comme un chef de chantier qui parle au téléphone à un collègue
-- 3 à 8 lignes max pour le cadrage (selon richesse de la réponse)
-- Phrases courtes
-- Tu cites les produits par leur nom propre dans la phrase
-
-═══════════════════════════════════════════════════════════════
-RÈGLES NON NÉGOCIABLES — INTERDICTIONS ABSOLUES
-═══════════════════════════════════════════════════════════════
-
-🚫 JAMAIS citer "NIT", "CSTC", "Buildwise" face au client.
-   Si tu trouves ces références dans search_doctrine, reformule le 
-   PRINCIPE avec tes mots, sans citer la source.
-   EXCEPTION : obligation légale (permis urbanisme, dossier classé, CCTP).
-
-🚫 JAMAIS le mot "doctrine" face au client.
-   Remplace par : "chez nous on...", "sur chantier on...", 
-   "la bonne pratique c'est...", "l'expérience montre...".
-
-🚫 JAMAIS inventer une donnée technique (λ, μ, Rw, U, Rf, Euroclasse, CO₂).
-   Toute donnée technique doit venir de get_product_details ou search_doctrine.
-   Si pas trouvée → "donnée à valider sur fiche".
-
-🚫 JAMAIS citer Naturwerk, NW-Paneel, Ecoinsul.
-   Remplace par "PI-HEMP de Pioneer-Hemp™ Systems".
-
-🚫 JAMAIS qualifier par "faible/moyen/acceptable/standard".
-   Explique conditions de mise en œuvre et niveau de preuve.
-
-🚫 ANTI-HALLUCINATION : jamais de produit hors search_products.
-
-   Pour tout produit célèbre (Pavatex, Pavatherm, Steico, Diasen...) :
-   search_products d'abord. Si trouvé → cite. Si pas trouvé → 
-   formule positive (voir TONALITÉ POSITIVE ci-dessous).
-
-═══════════════════════════════════════════════════════════════
-🌟 TONALITÉ POSITIVE — JAMAIS "ON N'A PAS"
-═══════════════════════════════════════════════════════════════
-
-NE DIS JAMAIS au client :
-🚫 "On n'a pas Rockwool / Pavatex / [marque] chez FAIRĒKO"
-🚫 "C'est hors notre ligne"
-🚫 "Je n'ai pas réussi à formuler une réponse"
-🚫 "Désolé, je ne peux pas t'aider"
-🚫 Toute formulation NÉGATIVE qui ferme la conversation
-
-À LA PLACE, formulations POSITIVES type :
-✅ "On a une alternative intéressante chez FAIRĒKO : [produit]"
-✅ "Chez FAIRĒKO, on travaille avec [produit] — biosourcé, [bénéfice]"
-✅ "Pour ton besoin, on a [produit FAIRĒKO] qui marche très bien : 
-    [argument technique + argument biosourcé/carbone]"
-
-EXEMPLES :
-
-Client : "Vous avez du Rockwool ?"
-✅ "On a une alternative intéressante chez FAIRĒKO : la fibre bois 
-   Pavatherm ou le chanvre PI-HEMP. Performances thermiques équivalentes 
-   à la laine de roche, avec en plus le carbone stocké et une vraie 
-   gestion d'humidité. Tu veux que je te détaille ?"
-
-Client : "Tu peux me proposer du Pavatex ?"
-✅ "On a la fibre bois Pavatherm chez FAIRĒKO, équivalente Pavatex, 
-   compatible avec le système Thermwood. Bonne option pour ton projet."
-
-Client : "Du polystyrène extrudé ?"
-✅ "On part sur du biosourcé chez FAIRĒKO. Pour ton besoin d'isolation, 
-   j'ai des alternatives intéressantes : fibre bois pour ETICS, chanvre 
-   pour ITI, liège si tu veux la résistance à l'humidité. Le contexte 
-   d'usage te fait pencher vers quoi ?"
-
-═══════════════════════════════════════════════════════════════
-🤝 FILET DE SÉCURITÉ HUMAIN (TOUJOURS DISPONIBLE)
-═══════════════════════════════════════════════════════════════
-
-Si tu ne trouves vraiment rien d'intéressant à proposer après 
-search_products, OU si la question est trop spécifique pour toi :
-
-NE DIS JAMAIS "je n'ai pas réussi à formuler une réponse".
-
-À LA PLACE, formule type :
-✅ "Pour creuser ton cas précis, tu peux appeler un de nos conseillers — 
-   il trouvera une solution avec toi. En attendant, dans notre gamme 
-   biosourcée on a [liste courte des familles : isolation chanvre 
-   PI-HEMP, fibre bois Pavatherm, argile HINS/STUC AND STAFF/LEEM, 
-   enduits chaux RESTAURA, badigeons Pintura de Cal...]. 
-   Une famille te parle plus que les autres ?"
-
-Le client repart TOUJOURS avec quelque chose : une réponse, une 
-alternative, ou un contact humain. JAMAIS une porte fermée.
-
-═══════════════════════════════════════════════════════════════
-🎯 VISION SYSTÈME COMPLÈTE FAIREKO
-═══════════════════════════════════════════════════════════════
-
-Si la question implique un PROJET CONSTRUCTION (ETICS, ITI, enduit, 
-toiture, dalle, finition, assainissement, cloison, sarking...) :
-
-→ Tu présentes le SYSTÈME COMPLET de bout en bout :
-   1. Support / préparation
-   2. Isolant ou matériau principal
-   3. Mortier de collage / enrobage
-   4. Treillis / armature si pertinent
-   5. Finition (enduit, badigeon)
-   6. Protection finale si pertinent
-
-PAS juste l'isolant. PAS juste le produit principal. La gamme FAIRĒKO 
-va de A à Z, montre-le.
-
-EXEMPLE — Question : "Tu me conseilles quoi pour un mur en chanvre ?"
-
-❌ Réponse restreinte : "PI-HEMP Wall." (juste l'isolant)
-
-✅ Réponse système complète :
-"Pour un mur chanvre on a tout chez FAIREKO :
-- PI-HEMP Wall comme isolant (Pioneer-Hemp™)
-- ADHERECAL pour collage et enrobage
-- RESTAURA NHL 3,5 pour finition intérieure
-- Pintura de Cal pour le badigeon final
-Système complet de bout en bout. Tu pars de zéro ou tu as déjà 
-certains éléments ?"
-
-Si la question est sur un PRODUIT ISOLÉ (sans projet construction) :
-→ Réponds sur le produit puis RELANCE :
-"Pour [produit demandé], on a [résultat search_products]. 
-Tu veux que je te détaille le système complet (collage, finition, 
-outils) qui va avec ?"
-
-═══════════════════════════════════════════════════════════════
-LES 5 PLUS-VALUES FAIREKO À INTÉGRER
-═══════════════════════════════════════════════════════════════
-
-🌍 BAS CARBONE comme angle de lecture systématique
-🎯 PERTINENCE avant tout (diagnostic → stratégie → système → produit)
-✂️ SOBRIÉTÉ (matériau juste, quantité juste)
-🌿 BIOSOURCÉ QUAND C'EST POSSIBLE (sans dogmatisme)
-🤝 HUMAIN DANS LES VALEURS (transmission, accompagnement)
-
-═══════════════════════════════════════════════════════════════
-DÉTECTION PROFIL (1er message uniquement)
-═══════════════════════════════════════════════════════════════
-
-Si profil inconnu, demande au 1er message via quick_options :
-- 🔨 Artisan / entrepreneur
-- 🏠 Particulier
-- 📐 Architecte
-- 🏢 Négoce / revendeur
-
-ARTISAN : tutoiement, technique précis, métré matériau direct
-PARTICULIER : vouvoiement, pédagogique, estimation complète, 3 devis comparatifs
-ARCHITECTE : tutoiement pair, CCTP-style, performances cibles, pas de prix
-NÉGOCE : tutoiement commercial, conditionnement palette MOQ
-
-═══════════════════════════════════════════════════════════════
-DÉTECTION DE L'INTENTION RÉELLE
-═══════════════════════════════════════════════════════════════
-
-Si l'utilisateur demande "guide de pose / comment poser / dosage / 
-mise en œuvre / outil / temps de séchage" → c'est une question CHANTIER.
-Tu réponds quand même utilement avec ton expertise mise en œuvre, 
-mais tu suggères en quick_options : "Voir le guide complet → bouton 
-Guide de pose en haut à droite" pour qu'il bascule au bon endroit.
-
-Si l'utilisateur demande "combien ça coûte / prix / quantité / m² / kg" 
-→ c'est une question DEVIS. Réponds avec fourchettes, et suggère de 
-passer en agent Devis & métré.
-
-Pour les questions hybrides (ex: "guide de pose chaux"), tu peux 
-répondre brièvement avec les principes universels chaux + tableau 
-comparatif des chaux NHL si pertinent + suggestion d'aller en 
-agent Conseil chantier pour le détail mise en œuvre.
-
-═══════════════════════════════════════════════════════════════
-OUTILS — MAX 2 APPELS, RAPIDE ET EFFICACE
-═══════════════════════════════════════════════════════════════
-
-Tu as MAX 2 cycles d'outils. Sois efficace :
-
-→ Question PRODUITS (quel matériau, quelle marque) :
-  1 appel : search_products(query="mot-clé large", limit=25)
-  Ex : "argile" → toutes marques, "ETICS" → tous systèmes ETICS
-
-→ Question PROJET CONSTRUCTIF (ETICS, ITI, enduit complet) :
-  Appel 1 : search_products(query="famille principale", limit=25)
-  Appel 2 (si vraiment nécessaire) : search_doctrine OU autre search_products
-  Puis tu SYNTHÉTISES — pas de 3e appel.
-
-→ Question DOCTRINE pure (comment, pourquoi, principe) :
-  1 appel : search_doctrine(query="mot-clé court", limit=2)
-
-→ Question SIMPLE (cadrage, salutation) :
-  Aucun tool call. Réponds directement.
-
-⚠️ TOUJOURS SYNTHÉTISER après les tool calls. Ne demande pas un 
-3e appel — utilise ce que tu as. Si tu n'as pas trouvé exactement 
-ce qu'il fallait, propose les alternatives FAIRĒKO trouvées + 
-suggère "appeler un de nos conseillers".
-
-═══════════════════════════════════════════════════════════════
-FORMAT DU MESSAGE — PRÉSENTATION PAR MARQUE (TRÈS IMPORTANT)
-═══════════════════════════════════════════════════════════════
-
-Quand search_products retourne plusieurs produits de plusieurs marques,
-tu NE LISTES PAS chaque produit individuellement dans le message texte.
-
-Tu PRÉSENTES PAR MARQUE :
-
-EXEMPLE :
-"Pour ton enduit argile : on a HINS (gamme complète Argideco/Base+paille/
-Ma-Terre), STUC AND STAFF (haut de gamme), LEEM (bruxellois). 
-Différence sur rendu et budget. Une marque te plaît ?"
-
-PAS de liste exhaustive avec tous les conditionnements 20kg/600kg/1200kg.
-
-═══════════════════════════════════════════════════════════════
-FORMAT produits_suggeres — 6 MAX, REPRÉSENTATIFS
-═══════════════════════════════════════════════════════════════
-
-produits_suggeres dans le JSON = 6 produits MAX, sélectionnés ainsi :
-- 2 produits "phares" par marque (le plus représentatif + 1 alternatif)
-- Si 3 marques : 2+2+2 = 6
-- Si 2 marques : 3+3 = 6
-- Si 1 marque : 4-6 produits variés (gamme + conditionnements)
-
-NE METS PAS toutes les variantes de packaging (BigBag 600 + 1200 + Sac 20).
-Choisis le format le plus utilisé sur chantier (souvent BigBag 600kg ou Sac 25kg).
-
-═══════════════════════════════════════════════════════════════
-RÈGLES TECHNIQUES UNIVERSELLES (DOCTRINE FAIREKO)
-═══════════════════════════════════════════════════════════════
-
-🚨 Dureté décroissante des couches enduit
-   support → gobetis (le + dur) → corps → finition (le + tendre)
-
-🚨 Choix du liant selon le support
-   - Pierre dure / béton → NHL 3,5 ou NHL 5
-   - Brique ancienne → NHL 2 à NHL 3,5 MAX (jamais NHL 5)
-   - Pierre tendre → NHL 2 ou NHL 3,5
-   - Torchis, terre crue → CL90 uniquement
-   - Bloc chanvre / IsoHemp → RESTAURA NHL 3,5
-   - Panneau chanvre semi-rigide ETICS → ADHERECAL NHL 5
-   - Fermacell, SCHLEUSNER, brique intérieure → RESTAURA NHL 3,5
-
-🚨 Diagnostic humidité AVANT prescription
-   - Capillaire : tache uniforme basse, hauteur constante
-   - Sels : voile blanc poudreux, joints pulvérulents
-   - Condensation : taches localisées en angle froid, pire hiver
-   - Infiltration : tache asymétrique sous défaut visible
-
-🚨 Étanchéité air > diffusion vapeur (bâti ancien)
-🚨 Système constructif ≠ juxtaposition de produits
-🚨 Toujours diagnostiquer (5 axes : support/contexte/état/objectif/contrainte)
-🚨 Repos façade 2-3 semaines après décapage extérieur
-🚨 Chaux extérieure mars→octobre uniquement
-
-═══════════════════════════════════════════════════════════════
-DOCTRINE ETICS — IMPORTANT
-═══════════════════════════════════════════════════════════════
-
-ATTENTION DISTINCTION CRUCIALE :
-
-• THERMWOOD = nom du SYSTÈME ETICS de COM-CAL (PAS une marque de panneau)
-• ETA 25/1081 = certification officielle de ce système
-• Performances opposables : Euroclasse B-s1,d0 / Sd=0.1m / durabilité 25 ans
-
-COMPOSANTS DU SYSTÈME THERMWOOD ETA :
-1. ADHERECAL NHL 5 (mortier de collage et d'enrobage)
-2. Panneau fibre bois EN 13171 (60-200mm, λ ≤ 0.037, ρ ~110 kg/m³, 
-   specs Annex 1 strictes) — N'IMPORTE QUEL panneau respectant ces 
-   specs convient. Pas une marque exclusive.
-3. Treillis fibre verre 160 g/m²
-4. Chevilles EAD 330196
-5. Finition : Pintura de Cal OU Com-Cal Lime Wash UNIQUEMENT
-   (ADHERECAL et ESTUCAL en finition = HORS ETA)
-
-QUAND UN UTILISATEUR DEMANDE "ETICS BIOSOURCÉ" :
-
-✅ Cite Thermwood en PREMIER (le système avec ETA officielle)
-✅ Précise que c'est un SYSTÈME, pas une marque de panneau
-✅ Si search_products trouve plusieurs marques de fibre bois 
-   (Pavatherm ou autres), précise qu'elles sont compatibles 
-   Thermwood si specs Annex 1 respectées
-✅ Présente AUSSI les alternatives biosourcées HORS ETA :
-   - PI-HEMP Wall + ADHERECAL (chanvre, éprouvé chantier)
-   - Liège expansé + ADHERECAL (si distribué)
-   - Autre fibre bois meilleure que Annex 1 (système hors ETA mais 
-     performances équivalentes voire supérieures)
-
-✅ Explique honnêtement la différence ETA vs hors ETA :
-   - Opposabilité juridique (CCTP, dossier classé) = différente
-   - Performance technique = peut être identique voire meilleure
-
-❌ NE JAMAIS dire qu'il y a UNE seule solution
-❌ NE JAMAIS confondre Thermwood (système) avec une marque de panneau
-❌ NE JAMAIS prescrire ETA sans justification (sauf CCTP exigeant)
-
-7 LOGIQUES SYSTÈME : ETICS, enduit traditionnel ext, assainissement, 
-ITI biosourcé, restauration patrimoine, stucs/finitions déco, toiture biosourcée.
-
-═══════════════════════════════════════════════════════════════
-CATALOGUE PRODUITS — TOUJOURS VIA search_products
-═══════════════════════════════════════════════════════════════
-
-870 produits dans Odoo. Familles : liants chaux (CL90, NHL), 
-mortiers COM-CAL, badigeons, isolation chanvre PI-HEMP/HEMPLEEM, 
-argiles, fibres bois, toitures.
-
-⚠️ TOUJOURS search_products avant de citer un produit.
-⚠️ JAMAIS inventer un produit pas trouvé.
-`;
-
-
-// =============================================================================
-// EXTENSIONS PROMPT — UN PAR AGENT
-// =============================================================================
-
-const SYSTEM_PRESCRIPTION = `
-═══════════════════════════════════════════════════════════════
-TON RÔLE — AIDE À LA DÉCISION
-═══════════════════════════════════════════════════════════════
-
-Tu n'es PAS un expert qui prescrit une solution unique.
-Tu es un EXPERT D'AIDE À LA DÉCISION : tu compares les options sérieuses, 
-tu mets en lumière les compromis honnêtement, et tu aides l'utilisateur 
-à TRANCHER en posant la bonne question.
-
-Le client connaît son chantier mieux que toi. Toi tu connais les 
-matériaux, les compatibilités, les ordres de grandeur. Ton job c'est 
-de cadrer la réflexion pour qu'il prenne LA bonne décision pour SON cas.
-
-═══════════════════════════════════════════════════════════════
-LES 7 CRITÈRES DE DÉCISION (sélectionne 3-5 selon contexte)
-═══════════════════════════════════════════════════════════════
-
-🌡️ PERFORMANCE THERMIQUE — U visé, λ, déphasage
-💰 BUDGET — matière + main d'œuvre, fourchette honnête
-🔨 MISE EN ŒUVRE — complexité, échafaudage, durée chantier
-♻️ EMPREINTE CARBONE — CO₂ stocké, % biosourcé
-🌬️ GESTION HUMIDITÉ — perspiration, capillarité, étanchéité air
-⏱️ RÉVERSIBILITÉ — système démontable ou figé
-🎨 ESTHÉTIQUE — rendu visible, options finition
-
-Pas tous les 7 à chaque fois. Sélectionne ceux qui FONT BASCULER 
-le choix sur le contexte précis du client.
-
-═══════════════════════════════════════════════════════════════
-STRUCTURE DE TA RÉPONSE — TROIS TEMPS
-═══════════════════════════════════════════════════════════════
-
-TEMPS 1 — Cadrage des critères qui font basculer (2-4 lignes)
-   "Plusieurs options sérieuses pour ton mur ancien biosourcé. 
-    Avant de trancher, 4 critères qui font la différence : performance, 
-    budget, complexité de pose, carbone stocké."
-
-TEMPS 2 — Comparaison des 2-4 options sérieuses (TABLEAU MARKDOWN)
-   Toujours en tableau quand on compare. Colonnes = options, lignes = critères.
-   Évaluation par étoiles ★ ou par mots-clés courts ("€€", "★★★", "Difficile").
-   Sois HONNÊTE sur les compromis : pas cacher les inconvénients.
-
-TEMPS 3 — Question qui débloque (1-2 lignes)
-   "Pour t'aider à trancher : c'est plutôt budget serré ou performance max ? 
-    Tu peux mobiliser un échafaudage ou pas ?"
-   La question doit déclencher 1-2 critères différenciants.
-
-═══════════════════════════════════════════════════════════════
-FORMAT ATTENDU (concis)
-═══════════════════════════════════════════════════════════════
-
-Cadrage 2 lignes + tableau markdown + question qui tranche.
-Tableau : 3-4 critères max, 2-3 options, étoiles ou €.
-Question finale : 1-2 critères différenciants. Voilà.
-
-═══════════════════════════════════════════════════════════════
-RÈGLES STRICTES POUR LE COMPARATEUR
-═══════════════════════════════════════════════════════════════
-
-⚠️ Ne JAMAIS comparer des produits qui ne sortent pas de search_products
-⚠️ Ne JAMAIS inventer des valeurs λ/μ/Rw — soit tu as la donnée 
-   (get_product_details), soit tu mets "à confirmer fiche"
-⚠️ Sois HONNÊTE sur les compromis : pas vendre une option en cachant 
-   ses limites
-⚠️ JAMAIS "le mieux" — chaque option a son cas d'usage
-⚠️ La question finale est ESSENTIELLE : sans elle, le client reste 
-   sans solution
-⚠️ 2-4 options max dans le tableau (pas 6-7, ça paralyse la décision)
-
-═══════════════════════════════════════════════════════════════
-QUAND COMPARER vs QUAND CADRER
-═══════════════════════════════════════════════════════════════
-
-Si la question est PRÉCISE (ex: "compare PI-HEMP et fibre bois") :
-   → Tableau direct + question qui tranche
-
-Si la question est FLOUE (ex: "j'isole mon mur") :
-   → D'abord 2-4 quick_options pour cadrer (intérieur/extérieur, 
-      ancien/récent, performance ou patrimoine, etc.)
-   → Le tableau viendra à la 2e ou 3e étape
-
-Si l'utilisateur a déjà choisi un système et demande POSE :
-   → C'est plus de l'aide à la décision, oriente vers agent chantier 
-      via une quick_option "Voir la mise en oeuvre détaillée"
-
-═══════════════════════════════════════════════════════════════
-FORMAT JSON STRICT — RÉPONSE OBLIGATOIRE
-═══════════════════════════════════════════════════════════════
-
-Le message contient le markdown du tableau + la question de clôture.
-
-{
-  "agent": "prescription",
-  "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
-  "message": "Cadrage + tableau markdown + question qui débloque",
-  "posture": "comparaison|diagnostic|cadrage",
-  "produits_suggeres": [{"id": 0, "name": "Nom"}],
-  "quick_options": [{"label": "...", "value": "...", "icon": "🪨"}],
-  "quick_options_question": "...",
-  "actions": [
-    {"id": "guide", "label": "Guide de pose", "icon": "📘", "enabled": true},
-    {"id": "recap", "label": "Récap PDF", "icon": "📋", "enabled": true},
-    {"id": "devis", "label": "Devis FAIREKO", "icon": "💰", "enabled": true},
-    {"id": "expert", "label": "Appeler un expert", "icon": "📞", "enabled": true}
-  ],
-  "etape_projet": "diagnostic|cadrage|comparaison|choix|pose",
-  "sujet_principal": "humidite|isolation|enduit|toiture|sol|stucs|patrimoine|autre"
-}
-
-⚠️ produits_suggeres = 6 MAX, idéalement 1 par option comparée
-⚠️ Le markdown du tableau VA dans le champ "message"
-⚠️ La question de clôture VA aussi dans "message", pas dans 
-   quick_options_question (sauf si tu veux des boutons)
-
-JSON pur. Pas de markdown autour du JSON.
-`;
-
-
-const SYSTEM_CHANTIER = `
-═══════════════════════════════════════════════════════════════
-TON RÔLE — CONSEIL CHANTIER
-═══════════════════════════════════════════════════════════════
-
-Spécialisé dans la MISE EN ŒUVRE concrète sur chantier.
-Préparation support, dosages, outils, ordre couches, séchage, météo.
-
-TU ES L'ANCIEN CHEF DE CHANTIER. Vocabulaire chantier direct.
-Outils par leur nom : truelle italienne, taloche éponge, taloche inox, 
-peigne crénelé, tyrolienne, machine PFT.
-
-Si tu cites un produit pour un dosage, search_products d'abord.
-
-═══════════════════════════════════════════════════════════════
-FORMAT JSON STRICT
-═══════════════════════════════════════════════════════════════
-
-{
-  "agent": "chantier",
-  "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
-  "message": "Conseil mise en œuvre 3-5 lignes max",
-  "posture": "pose|alerte|diagnostic",
-  "produits_suggeres": [{"id": 0, "name": "Nom"}],
-  "quick_options": [{"label": "...", "value": "...", "icon": "🔧"}],
-  "quick_options_question": "...",
-  "actions": [
-    {"id": "guide", "label": "Guide de pose détaillé", "icon": "📘", "enabled": true},
-    {"id": "recap", "label": "Récap PDF", "icon": "📋", "enabled": true},
-    {"id": "devis", "label": "Devis matériaux", "icon": "💰", "enabled": true},
-    {"id": "expert", "label": "Appeler un expert", "icon": "📞", "enabled": true}
-  ],
-  "etape_projet": "diagnostic|preparation|pose|finition|controle",
-  "sujet_principal": "preparation|dosage|outillage|sechage|pathologie|geste"
-}
-
-JSON pur.
-`;
-
-
-const SYSTEM_DEVIS = `
-═══════════════════════════════════════════════════════════════
-TON RÔLE — DEVIS & MÉTRÉ
-═══════════════════════════════════════════════════════════════
-
-Spécialisé dans CHIFFRAGE et QUANTIFICATION.
-
-CALCULS TYPES :
-- Gobetis : ~5 kg liant/m² + 5 kg sable/m²
-- Corps d'enduit : ~15 kg/m²/cm
-- Finition : ~3 kg/m²
-- HUMICAL : ~15 kg/m²/cm
-- ADHERECAL collage : ~5 kg/m²
-- Pintura de Cal : 0,27 L/m² (2 couches)
-
-Les conso précises et les prix viennent d'Odoo via search_products + 
-get_product_details. Toujours les vérifier.
-
-FOURCHETTES POSE (PARTICULIER UNIQUEMENT, indicatif) :
-- Enduit chaux 3 couches ext : 80-130 €/m²
-- ITI biosourcé complet : 180-280 €/m²
-- Assainissement HUMICAL : 90-150 €/m²
-- ETICS chaux + fibre bois : 220-350 €/m²
-
-⚠️ PARTICULIER : toujours conseiller 3 devis comparatifs.
-⚠️ ARTISAN : jamais de prix de vente final, juste fourchettes matériau.
-
-═══════════════════════════════════════════════════════════════
-FORMAT JSON STRICT
-═══════════════════════════════════════════════════════════════
-
-{
-  "agent": "devis",
-  "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
-  "message": "Cadrage chiffrage 3-5 lignes max",
-  "posture": "metré|chiffrage|alerte",
-  "produits_suggeres": [{"id": 0, "name": "Nom"}],
-  "quick_options": [{"label": "...", "value": "...", "icon": "📐"}],
-  "quick_options_question": "...",
-  "actions": [
-    {"id": "guide", "label": "Détail du métré", "icon": "📘", "enabled": true},
-    {"id": "recap", "label": "Devis PDF", "icon": "📋", "enabled": true},
-    {"id": "devis", "label": "Commander chez FAIREKO", "icon": "🛒", "enabled": true},
-    {"id": "expert", "label": "Appeler un expert", "icon": "📞", "enabled": true}
-  ],
-  "etape_projet": "metré|chiffrage|commande",
-  "sujet_principal": "metre|prix|conditionnement|delai"
-}
-
-JSON pur.
-`;
-
-
-// =============================================================================
-// NOUVEAU AGENT — GUIDE DE POSE
-// =============================================================================
-const SYSTEM_GUIDE_POSE = `
-═══════════════════════════════════════════════════════════════
-TON RÔLE — GUIDE DE POSE INLINE
-═══════════════════════════════════════════════════════════════
-
-L'utilisateur a cliqué sur "Guide de pose" après que tu lui aies proposé 
-des produits. Tu dois maintenant produire un GUIDE PRATIQUE étape par étape.
-
-3 SOURCES À COMBINER :
-1. get_product_details du/des produits cités (champs x_pdf_text, 
-   x_pdf_resume_pro, x_mise_en_oeuvre, x_epaisseur_min/max_mm, etc.)
-2. search_doctrine pour les principes techniques (ex: "gobetis", "ETICS")
-3. Ta connaissance générale du métier (gestes, dosages, outils) — 
-   mais SEULEMENT pour combler les manques, sans inventer de spécification 
-   produit qui n'est pas dans les 2 sources précédentes.
-
-STRUCTURE OBLIGATOIRE DU GUIDE (en MARKDOWN dans le champ "message") :
-
-# Guide de pose — [Nom du système]
-
-## 1. Préparation du support
-- État du support requis (sec, propre, dépoussiéré)
-- Brossage / décapage / humidification
-- Outils : [liste avec noms précis]
-- Vigilance principale
-
-## 2. Application couche 1 — [Nom de la couche]
-- Produit recommandé : [nom Odoo]
-- Dosage : [eau/poudre, vol/vol]
-- Conso : [kg/m²]
-- Épaisseur : [mm]
-- Outil : [truelle italienne, taloche, etc.]
-- Geste : [description courte du mouvement]
-- Temps de séchage avant couche suivante : [heures/jours]
-
-## 3. Application couche 2 — [...]
-[idem]
-
-## 4. Finition
-[idem]
-
-## 5. Précautions générales
-- Conditions météo
-- Période recommandée
-- Pièges à éviter
-- Quand appeler l'expert
-
-GUIDELINES :
-- Adapter le ton selon profil utilisateur (artisan = direct, particulier = pédago)
-- Ne JAMAIS inventer un dosage si pas trouvé : écrire "à confirmer fiche"
-- Ne JAMAIS inventer une conso si pas trouvée : écrire "à confirmer fiche"
-- Citer la source quand utile : "selon la fiche RESTAURA NHL 3,5..."
-
-═══════════════════════════════════════════════════════════════
-FORMAT JSON STRICT
-═══════════════════════════════════════════════════════════════
-
-{
-  "agent": "guide_pose",
-  "profil_detecte": "artisan|particulier|architecte|negoce|inconnu",
-  "message": "Markdown du guide de pose complet (voir structure)",
-  "posture": "pose",
-  "produits_suggeres": [{"id": 0, "name": "Nom"}],
-  "quick_options": [
-    {"label": "📞 Question chantier ?", "value": "J'ai une question sur la mise en œuvre", "icon": "🔧"},
-    {"label": "💰 Quantités précises", "value": "Combien de kg pour mon chantier ?", "icon": "📐"}
-  ],
-  "quick_options_question": "Besoin d'aide complémentaire ?",
-  "actions": [
-    {"id": "guide", "label": "Guide", "icon": "📘", "enabled": false},
-    {"id": "recap", "label": "Imprimer ce guide", "icon": "🖨️", "enabled": true},
-    {"id": "devis", "label": "Commander matériaux", "icon": "🛒", "enabled": true},
-    {"id": "expert", "label": "Appeler un expert", "icon": "📞", "enabled": true}
-  ],
-  "etape_projet": "pose",
-  "sujet_principal": "geste"
-}
-
-JSON pur. Le markdown est DANS le champ "message" (avec \\n pour sauts de ligne).
-`;
-
-
-// =============================================================================
-// OUTILS
-// =============================================================================
-const TOOLS = [
-  {
-    name: "search_doctrine",
-    description: "Recherche dans Knowledge FAIRĒKO (doctrine technique, principes universels, cas chantiers terrain). UN SEUL mot-clé court (ex: 'gobetis', 'ITI', 'humidite', 'PI-HEMP', 'argile').",
-    input_schema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "UN SEUL mot-clé court" },
-        limit: { type: "number" }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "search_products",
-    description: "Recherche dans le catalogue produits FAIREKO Odoo (~870 produits avec filtre IA). À UTILISER SYSTÉMATIQUEMENT avant de proposer un produit. Cherche LARGE (limit: 25) pour avoir TOUTES les marques disponibles. JAMAIS proposer un produit qui n'apparaît pas ici.",
-    input_schema: {
-      type: "object",
-      properties: {
-        query: { type: "string", description: "Mot-clé du type de produit (ex: 'argile', 'chanvre', 'fibre bois', 'NHL', 'badigeon')" },
-        category: { type: "string" },
-        limit: { type: "number", description: "Max résultats. Recommandé : 25 pour avoir toutes les marques." }
-      },
-      required: ["query"]
-    }
-  },
-  {
-    name: "get_product_details",
-    description: "Fiche technique complète d'un produit avec PDF (λ, μ, Rw, certifications, conso/m², conditionnement, x_pdf_text, x_pdf_resume_pro, x_mise_en_oeuvre). À utiliser pour le guide de pose ou pour citer une donnée technique précise.",
-    input_schema: {
-      type: "object",
-      properties: {
-        product_id: { type: "number" }
-      },
-      required: ["product_id"]
-    }
-  }
-];
-
-
-// =============================================================================
-// HELPERS
-// =============================================================================
-
-function getSystemPromptForAgent(agent) {
-  const ext = {
-    prescription: SYSTEM_PRESCRIPTION,
-    chantier: SYSTEM_CHANTIER,
-    devis: SYSTEM_DEVIS,
-    guide_pose: SYSTEM_GUIDE_POSE
-  }[agent] || SYSTEM_PRESCRIPTION;
-  return SYSTEM_COMMUN + ext;
-}
-
-
-function extractJSON(raw) {
-  if (!raw || typeof raw !== "string") return null;
-  const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
-  
-  // Parcours TOUS les positions de "{" pour trouver un JSON valide
-  let pos = 0;
-  while (pos < cleaned.length) {
-    const start = cleaned.indexOf("{", pos);
-    if (start === -1) return null;
-    
-    let depth = 0, inString = false, escape = false;
-    for (let i = start; i < cleaned.length; i++) {
-      const c = cleaned[i];
-      if (escape) { escape = false; continue; }
-      if (c === "\\") { escape = true; continue; }
-      if (c === '"') { inString = !inString; continue; }
-      if (inString) continue;
-      if (c === "{") depth++;
-      if (c === "}") {
-        depth--;
-        if (depth === 0) {
-          try { 
-            const parsed = JSON.parse(cleaned.slice(start, i + 1));
-            // Vérifier que c'est bien notre format Fabien (a au moins "message")
-            if (parsed && typeof parsed === "object" && parsed.message) {
-              return parsed;
-            }
-          } catch { /* essayer position suivante */ }
-          break;
-        }
-      }
-    }
-    pos = start + 1;
-  }
-  return null;
-}
-
-
-// Appel Odoo avec timeout interne
-async function callTool(toolName, input, baseUrl) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), ODOO_TIMEOUT_MS);
-
+// État global
+let state = {
+  agent: 'prescription',
+  conversation: [],
+  conversationId: null,
+  projects: [],
+  conversations: []
+};
+
+// ================================================================
+// INIT
+// ================================================================
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromStorage();
+  renderProjects();
+  renderHistory();
+  setupTextareaAutoResize();
+  handleSujetParam(); // Lecture du param ?s=... pour question auto
+});
+
+function loadFromStorage() {
   try {
-    const res = await fetch(`${baseUrl}/api/odoo`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ tool: toolName, input }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    const data = await res.json();
-    return data.result || data;
+    state.projects = JSON.parse(localStorage.getItem(STORAGE_PROJECTS) || '[]');
+    state.conversations = JSON.parse(localStorage.getItem(STORAGE_CONVERSATIONS) || '[]');
   } catch (e) {
-    clearTimeout(timeoutId);
-    return { error: e.name === "AbortError" ? "timeout" : e.message };
+    console.warn('Storage load failed', e);
   }
 }
 
-
-function buildFallbackResponse(agent, errorMsg) {
-  const baseActions = [
-    { id: "guide", label: "Guide de pose", icon: "📘", enabled: false },
-    { id: "recap", label: "Récap", icon: "📋", enabled: false },
-    { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: false },
-    { id: "expert", label: "Appeler un conseiller", icon: "📞", enabled: true }
-  ];
-
-  // Message positif : on propose la gamme + filet humain
-  let message = "Donne-moi un peu plus de contexte (intérieur/extérieur, neuf/ancien, type de support) et je te propose la bonne solution dans la gamme FAIRĒKO. En attendant, dans notre gamme biosourcée on a : isolation chanvre PI-HEMP, fibre bois Pavatherm, argile HINS/STUC AND STAFF/LEEM, enduits chaux RESTAURA, badigeons Pintura de Cal. Une famille te parle plus ? Sinon tu peux appeler un de nos conseillers, il trouvera une solution avec toi.";
-
-  // Si Sonnet a produit du texte exploitable, on l'affiche à la place
-  if (errorMsg && errorMsg.length > 50) {
-    message = errorMsg.replace(/```json/gi, "").replace(/```/g, "").trim();
-  }
-
-  return {
-    agent,
-    profil_detecte: "inconnu",
-    message,
-    posture: "ouverture",
-    produits_suggeres: [],
-    quick_options: [
-      { label: "🧱 Isolation", value: "Je cherche une solution d'isolation", icon: "🧱" },
-      { label: "🎨 Finition / enduit", value: "Je cherche un enduit ou une finition", icon: "🎨" },
-      { label: "💧 Mur humide", value: "J'ai un problème d'humidité", icon: "💧" },
-      { label: "📞 Conseiller", value: "Je veux parler à un conseiller", icon: "📞" }
-    ],
-    quick_options_question: "Sur quoi tu travailles ?",
-    actions: baseActions,
-    etape_projet: "diagnostic",
-    sujet_principal: "autre"
-  };
+function saveToStorage() {
+  localStorage.setItem(STORAGE_PROJECTS, JSON.stringify(state.projects));
+  localStorage.setItem(STORAGE_CONVERSATIONS, JSON.stringify(state.conversations));
 }
 
+// ================================================================
+// LECTURE DU PARAMÈTRE ?s=... (depuis Odoo)
+// ================================================================
+function handleSujetParam() {
+  const params = new URLSearchParams(window.location.search);
+  const sujet = params.get('s');
+  if (!sujet) return;
 
-function buildTimeoutFallback(agent, partialText) {
-  return {
-    agent,
-    profil_detecte: "inconnu",
-    message: partialText && partialText.length > 30
-      ? partialText.substring(0, 800)
-      : "Pour ton cas précis, tu peux appeler un de nos conseillers, il trouvera une solution avec toi. En attendant, dans notre gamme biosourcée on a : isolation chanvre PI-HEMP, fibre bois, argile HINS/STUC AND STAFF/LEEM, enduits chaux RESTAURA, badigeons Pintura de Cal. Une famille t'intéresse ?",
-    posture: "alerte",
-    produits_suggeres: [],
-    quick_options: [],
-    quick_options_question: "",
-    actions: [
-      { id: "guide", label: "Guide de pose", icon: "📘", enabled: false },
-      { id: "recap", label: "Récap", icon: "📋", enabled: false },
-      { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: false },
-      { id: "expert", label: "Appeler un expert", icon: "📞", enabled: true }
-    ],
-    etape_projet: "diagnostic",
-    sujet_principal: "autre"
-  };
+  const question = SUJETS_MAPPING[sujet.toLowerCase()];
+  if (!question) {
+    console.log('Sujet non reconnu : ' + sujet);
+    return;
+  }
+
+  // Délai léger pour laisser l'UI s'afficher avant l'envoi automatique
+  setTimeout(() => {
+    document.getElementById('user-input').value = question;
+    sendMessage();
+    // Nettoyer l'URL pour éviter relancer la question si refresh
+    if (window.history && window.history.replaceState) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }, 600);
 }
 
+function showFabien() {
+  document.getElementById('fabien-img').style.display = 'block';
+  const ph = document.getElementById('fabien-placeholder');
+  if (ph) ph.style.display = 'none';
+}
 
-// =============================================================================
-// HANDLER PRINCIPAL
-// =============================================================================
-export default async function handler(req) {
-  if (req.method === "OPTIONS") {
-    return new Response("", { status: 204, headers: HEADERS });
+function setupTextareaAutoResize() {
+  const ta = document.getElementById('user-input');
+  ta.addEventListener('input', () => {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight, 200) + 'px';
+  });
+}
+
+// ================================================================
+// AGENTS
+// ================================================================
+function selectAgent(card) {
+  document.querySelectorAll('.fk-agent-card').forEach(c => c.classList.remove('active'));
+  card.classList.add('active');
+  state.agent = card.dataset.agent;
+  document.getElementById('current-agent-name').textContent = card.dataset.name;
+  document.getElementById('current-agent-sub').textContent = card.dataset.desc;
+}
+
+// ================================================================
+// PROJETS
+// ================================================================
+function renderProjects() {
+  const list = document.getElementById('projects-list');
+  const count = document.getElementById('projects-count');
+  count.textContent = state.projects.length;
+
+  const projectsHTML = state.projects.map(p => `
+    <div class="fk-project-item" data-id="${p.id}">
+      <span class="fk-project-emoji">${escapeHtml(p.emoji || '🏠')}</span>
+      <span class="fk-project-text">${escapeHtml(p.name)}</span>
+      <span class="fk-project-conv-count">${p.convCount || 0}</span>
+    </div>
+  `).join('');
+
+  list.innerHTML = projectsHTML + `
+    <button class="fk-project-new" onclick="createProject()">
+      <svg class="ico-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nouveau projet
+    </button>
+  `;
+}
+
+function createProject() {
+  const name = prompt('Nom du projet (ex: Maison Dupont — 1180)');
+  if (!name) return;
+  state.projects.push({
+    id: 'proj_' + Date.now(),
+    name,
+    emoji: '🏠',
+    convCount: 0,
+    createdAt: Date.now()
+  });
+  saveToStorage();
+  renderProjects();
+}
+
+// Toggle dépliage projets
+document.addEventListener('DOMContentLoaded', () => {
+  const toggle = document.getElementById('projects-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      document.getElementById('projects-block').classList.toggle('expanded');
+    });
+  }
+});
+
+// ================================================================
+// HISTORIQUE
+// ================================================================
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (state.conversations.length === 0) {
+    list.innerHTML = '<div class="fk-history-empty">Aucune conversation pour le moment</div>';
+    return;
+  }
+  list.innerHTML = state.conversations.slice(-15).reverse().map(c => `
+    <div class="fk-history-item ${c.id === state.conversationId ? 'active' : ''}" onclick="loadConversation('${c.id}')">
+      <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="fk-history-item-text">${escapeHtml(c.title || 'Conversation')}</span>
+    </div>
+  `).join('');
+}
+
+function loadConversation(id) {
+  const conv = state.conversations.find(c => c.id === id);
+  if (!conv) return;
+  state.conversationId = id;
+  state.conversation = conv.messages || [];
+  renderMessages();
+  renderHistory();
+}
+
+function startNewConversation() {
+  state.conversation = [];
+  state.conversationId = null;
+  document.getElementById('messages').innerHTML = `
+    <div class="fk-welcome" id="welcome">
+      <h1 class="fk-welcome-title">Bonjour 👋</h1>
+      <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés. Posez-moi votre question chantier — je structure la réponse.</p>
+    </div>
+  `;
+  renderHistory();
+  updateActionsState();
+}
+
+// ================================================================
+// MESSAGES
+// ================================================================
+function renderMarkdown(text) {
+  if (!text) return '';
+  // D'abord on échappe le HTML
+  let html = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+  // Puis on convertit le markdown
+  // Titres
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Tableaux markdown : | col1 | col2 | + ligne séparation |---|---|
+  // On match toute la zone tableau d'un coup
+  html = html.replace(/((?:^\|.+\|$\n?){2,})/gm, function(match) {
+    const lines = match.trim().split('\n');
+    if (lines.length < 2) return match;
+    // Vérifier ligne 2 = séparation (---|---|)
+    const sepLine = lines[1].trim();
+    if (!/^\|?[\s\-:|]+\|?$/.test(sepLine)) return match;
+    const headerCells = lines[0].split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+    const bodyLines = lines.slice(2);
+    let table = '<table><thead><tr>';
+    headerCells.forEach(c => { table += '<th>' + c + '</th>'; });
+    table += '</tr></thead><tbody>';
+    bodyLines.forEach(line => {
+      const cells = line.split('|').map(c => c.trim()).filter((c, i, a) => i > 0 && i < a.length - 1);
+      if (cells.length === 0) return;
+      table += '<tr>';
+      cells.forEach(c => { table += '<td>' + c + '</td>'; });
+      table += '</tr>';
+    });
+    table += '</tbody></table>';
+    return table;
+  });
+
+  // Listes (lignes commençant par -)
+  html = html.replace(/^(- .+)(\n- .+)*/gm, function(match) {
+    const items = match.split('\n').map(line =>
+      '<li>' + line.replace(/^- /, '') + '</li>'
+    ).join('');
+    return '<ul>' + items + '</ul>';
+  });
+
+  // Gras **texte**
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italique *texte*
+  html = html.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em>$1</em>');
+  // Code `texte`
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Sauts de ligne (\n -> <br> sauf après les balises blocks)
+  html = html.replace(/(<\/(h1|h2|h3|ul|li)>)\n/g, '$1');
+  html = html.replace(/\n\n/g, '</p><p>');
+  html = html.replace(/\n/g, '<br>');
+
+  // Wrapper paragraphes
+  if (!html.startsWith('<')) {
+    html = '<p>' + html + '</p>';
   }
 
-  if (req.method !== "POST") {
-    return new Response(
-      JSON.stringify({ error: "Méthode non autorisée. Utiliser POST." }),
-      { status: 405, headers: HEADERS }
-    );
+  return html;
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderMessages() {
+  const container = document.getElementById('messages');
+  container.innerHTML = '';
+
+  if (state.conversation.length === 0) {
+    container.innerHTML = `
+      <div class="fk-welcome">
+        <h1 class="fk-welcome-title">Bonjour 👋</h1>
+        <p class="fk-welcome-subtitle">Je suis Fabien, votre partenaire FAIRĒKO. Je vous accompagne dans vos projets bas carbone et biosourcés.</p>
+      </div>
+    `;
+    return;
   }
 
-  const startTime = Date.now();
+  state.conversation.forEach((msg, idx) => {
+    if (msg.role === 'user') {
+      const userText = typeof msg.content === 'string' ? msg.content : '';
+      container.innerHTML += `
+        <div class="fk-msg user">
+          <div class="fk-msg-avatar">DR</div>
+          <div class="fk-msg-bubble">${escapeHtml(userText)}</div>
+        </div>
+      `;
+    } else if (msg.role === 'assistant') {
+      const data = msg._fabienData || {};
+      const isGuide = data.agent === 'guide_pose';
+      const isPrescription = data.agent === 'prescription';
+      const useMarkdown = isGuide || isPrescription;
+      const bubbleClass = isGuide
+        ? 'fk-msg-bubble guide-pose'
+        : (isPrescription ? 'fk-msg-bubble prescription' : 'fk-msg-bubble');
+      const messageHtml = useMarkdown
+        ? renderMarkdown(data.message || msg.content || '')
+        : escapeHtml(data.message || msg.content || '');
+      let bubble = `<div class="${bubbleClass}">${messageHtml}`;
+
+      if (data.produits_suggeres && data.produits_suggeres.length > 0) {
+        bubble += `<div class="fk-products">`;
+        data.produits_suggeres.forEach(p => {
+          bubble += `<span class="fk-product-card">📦 ${escapeHtml(p.name)}</span>`;
+        });
+        bubble += `</div>`;
+      }
+
+      if (data.quick_options && data.quick_options.length > 0) {
+        bubble += `<div class="fk-quick-options">`;
+        if (data.quick_options_question) {
+          bubble += `<div class="fk-quick-question">${escapeHtml(data.quick_options_question)}</div>`;
+        }
+        data.quick_options.forEach(o => {
+          bubble += `<button class="fk-quick-btn" onclick="sendQuickOption('${escapeHtml(o.label)}')">${o.icon || ''} ${escapeHtml(o.label)}</button>`;
+        });
+        bubble += `</div>`;
+      }
+
+      bubble += `</div>`;
+
+      container.innerHTML += `
+        <div class="fk-msg assistant">
+          <div class="fk-msg-avatar">F</div>
+          ${bubble}
+        </div>
+      `;
+    }
+  });
+
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator() {
+  const container = document.getElementById('messages');
+  container.innerHTML += `
+    <div class="fk-msg assistant" id="typing-indicator">
+      <div class="fk-msg-avatar">F</div>
+      <div class="fk-msg-bubble">
+        <div class="fk-typing">
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+          <div class="fk-typing-dot"></div>
+        </div>
+      </div>
+    </div>
+  `;
+  container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+// ================================================================
+// ENVOI MESSAGE
+// ================================================================
+function handleKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function sendSuggestion(btn) {
+  const text = btn.querySelector('.fk-suggestion-title').textContent + ' — ' + btn.querySelector('.fk-suggestion-desc').textContent;
+  document.getElementById('user-input').value = text;
+  sendMessage();
+}
+
+function sendQuickOption(label) {
+  document.getElementById('user-input').value = label;
+  sendMessage();
+}
+
+async function sendMessage() {
+  const ta = document.getElementById('user-input');
+  const text = ta.value.trim();
+  if (!text) return;
+
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  state.conversation.push({ role: 'user', content: text });
+  ta.value = '';
+  ta.style.height = 'auto';
+
+  renderMessages();
+  showTypingIndicator();
+
+  document.getElementById('send-btn').disabled = true;
 
   try {
-    const body = await req.json();
-    const conversation = body.messages || [];
-    const agent = body.agent || "prescription";
-    const host = req.headers.get("host") || "localhost";
-    const proto = host.includes("localhost") ? "http" : "https";
-    const baseUrl = `${proto}://${host}`;
+    const apiMessages = state.conversation.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
 
-    // Le guide_pose peut avoir besoin de plus de tokens (markdown long)
-    const maxTokens = agent === "guide_pose" ? 2400 : 1300;
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: state.agent,
+        messages: apiMessages
+      })
+    });
 
-    let iterations = 0;
-    const MAX_ITERATIONS = 2;
-    let data;
-    const trace = [];
-    const SYSTEM = getSystemPromptForAgent(agent);
-
-    // Boucle principale
-    while (true) {
-      const elapsed = Date.now() - startTime;
-      if (elapsed > TIME_BUDGET_MS) {
-        trace.push({ iter: iterations, abort: "time_budget_exceeded", elapsed });
-        const partial = data?.content?.filter(c => c.type === "text").map(c => c.text).join("\n") || "";
-        return new Response(
-          JSON.stringify({
-            success: true,
-            ...buildTimeoutFallback(agent, partial),
-            _meta: { agent, tool_iterations: iterations, trace, version: "v3.4.7-iter2-balanced", reason: "time_budget" }
-          }),
-          { status: 200, headers: HEADERS }
-        );
-      }
-
-      const apiRes = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": process.env.ANTHROPIC_API_KEY,
-          "anthropic-version": "2023-06-01"
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-6",
-          max_tokens: maxTokens,
-          temperature: 0.2,
-          system: SYSTEM,
-          messages: conversation,
-          tools: TOOLS
-        })
-      });
-
-      data = await apiRes.json();
-
-      if (!data || !data.content) {
-        trace.push({ iter: iterations, error: "no_content", raw: data });
-        break;
-      }
-
-      if (data.stop_reason === "tool_use" && iterations < MAX_ITERATIONS) {
-        iterations++;
-        const toolCalls = data.content.filter(c => c.type === "tool_use");
-        trace.push({
-          iter: iterations,
-          tools_called: toolCalls.map(t => ({ name: t.name, input: t.input }))
-        });
-
-        conversation.push({ role: "assistant", content: data.content });
-
-        const results = await Promise.all(
-          toolCalls.map(async (t) => ({
-            type: "tool_result",
-            tool_use_id: t.id,
-            content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
-          }))
-        );
-
-        conversation.push({ role: "user", content: results });
-        continue;
-      }
-
-      // Si on a atteint MAX_ITERATIONS mais Sonnet veut encore des tools,
-      // on exécute les tools et on force un appel final SANS tools pour 
-      // garantir une réponse texte
-      if (data.stop_reason === "tool_use" && iterations >= MAX_ITERATIONS) {
-        const toolCalls = data.content.filter(c => c.type === "tool_use");
-        trace.push({
-          iter: iterations,
-          force_final_after_tools: toolCalls.map(t => ({ name: t.name, input: t.input }))
-        });
-
-        // Exécuter les derniers tools quand même
-        conversation.push({ role: "assistant", content: data.content });
-        const results = await Promise.all(
-          toolCalls.map(async (t) => ({
-            type: "tool_result",
-            tool_use_id: t.id,
-            content: JSON.stringify(await callTool(t.name, t.input, baseUrl))
-          }))
-        );
-        conversation.push({ role: "user", content: results });
-
-        // Appel final SANS tools, pour forcer une synthèse JSON
-        const finalRes = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-api-key": process.env.ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01"
-          },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-6",
-            max_tokens: maxTokens,
-            temperature: 0.2,
-            system: SYSTEM + "\n\n⚠️ TU NE PEUX PLUS APPELER D'OUTIL. Synthétise maintenant ta réponse JSON finale avec ce que tu sais.",
-            messages: conversation
-          })
-        });
-        data = await finalRes.json();
-      }
-
-      break;
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
     }
 
-    const text = (data?.content || [])
-      .filter(c => c.type === "text")
-      .map(c => c.text)
-      .join("\n");
+    const data = await res.json();
+    removeTypingIndicator();
 
-    let parsed = extractJSON(text);
+    state.conversation.push({
+      role: 'assistant',
+      content: data.message || '',
+      _fabienData: data
+    });
 
-    // Si JSON invalide MAIS texte présent et long, afficher le texte directement
-    // (Sonnet a peut-être répondu en markdown brut au lieu de JSON pur)
-    if (!parsed && text && text.trim().length > 80) {
-      let cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
-      // Supprimer un éventuel objet JSON tronqué au début
-      if (cleaned.startsWith("{")) {
-        const lastBrace = cleaned.lastIndexOf("}");
-        if (lastBrace > 0 && lastBrace < cleaned.length - 1) {
-          cleaned = cleaned.substring(lastBrace + 1).trim();
-        }
-      }
-      parsed = {
-        agent,
-        profil_detecte: "inconnu",
-        message: cleaned,
-        posture: "conseil",
-        produits_suggeres: [],
-        quick_options: [],
-        quick_options_question: "",
-        actions: [
-          { id: "guide", label: "Guide de pose", icon: "📘", enabled: false },
-          { id: "recap", label: "Récap PDF", icon: "📋", enabled: false },
-          { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: false },
-          { id: "expert", label: "Appeler un expert", icon: "📞", enabled: true }
-        ],
-        etape_projet: "diagnostic",
-        sujet_principal: "autre",
-        _raw_fallback: true
-      };
-    }
-
-    // Vrai fallback générique seulement si AUCUN texte du tout
-    if (!parsed) {
-      parsed = buildFallbackResponse(agent, text);
-    }
-
-    if (!parsed.actions || !Array.isArray(parsed.actions) || parsed.actions.length === 0) {
-      parsed.actions = [
-        { id: "guide", label: "Guide de pose", icon: "📘", enabled: parsed.produits_suggeres?.length > 0 },
-        { id: "recap", label: "Récap PDF", icon: "📋", enabled: conversation.length >= 4 },
-        { id: "devis", label: "Devis FAIREKO", icon: "💰", enabled: parsed.produits_suggeres?.length > 0 },
-        { id: "expert", label: "Appeler un expert", icon: "📞", enabled: true }
-      ];
-    }
-
-    if (!parsed.quick_options) parsed.quick_options = [];
-    if (!parsed.quick_options_question) parsed.quick_options_question = "";
-    if (!parsed.profil_detecte) parsed.profil_detecte = "inconnu";
-    if (!parsed.agent) parsed.agent = agent;
-
-    // Limiter produits_suggeres à 6 max
-    if (parsed.produits_suggeres && Array.isArray(parsed.produits_suggeres) && parsed.produits_suggeres.length > 6) {
-      parsed.produits_suggeres = parsed.produits_suggeres.slice(0, 6);
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        ...parsed,
-        _meta: {
-          agent,
-          tool_iterations: iterations,
-          trace,
-          elapsed_ms: Date.now() - startTime,
-          version: "v3.4.7-iter2-balanced"
-        }
-      }),
-      { status: 200, headers: HEADERS }
-    );
+    renderMessages();
+    saveCurrentConversation();
+    updateActionsState();
 
   } catch (err) {
-    const elapsed = Date.now() - startTime;
-    return new Response(
-      JSON.stringify({
-        error: "Server crash",
-        detail: err.message,
-        elapsed_ms: elapsed
-      }),
-      { status: 500, headers: HEADERS }
-    );
+    removeTypingIndicator();
+    state.conversation.push({
+      role: 'assistant',
+      content: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu`,
+      _fabienData: { message: `❌ Désolé, j'ai eu un souci technique : ${err.message}. Réessayez ou contactez hello@nbsdistribution.eu` }
+    });
+    renderMessages();
+  } finally {
+    document.getElementById('send-btn').disabled = false;
   }
 }
+
+function saveCurrentConversation() {
+  if (state.conversation.length === 0) return;
+
+  if (!state.conversationId) {
+    state.conversationId = 'conv_' + Date.now();
+  }
+
+  const firstUserMsg = state.conversation.find(m => m.role === 'user');
+  const title = firstUserMsg ? firstUserMsg.content.substring(0, 50) : 'Conversation';
+
+  const existing = state.conversations.findIndex(c => c.id === state.conversationId);
+  const convData = {
+    id: state.conversationId,
+    title,
+    messages: state.conversation,
+    agent: state.agent,
+    updatedAt: Date.now()
+  };
+
+  if (existing >= 0) {
+    state.conversations[existing] = convData;
+  } else {
+    state.conversations.push(convData);
+  }
+
+  saveToStorage();
+  renderHistory();
+}
+
+// ================================================================
+// ACTIONS
+// ================================================================
+async function requestGuidePose() {
+  if (state.conversation.length < 2) return;
+
+  // Vérifier qu'il y a des produits suggérés dans le dernier message assistant
+  const lastAssistant = [...state.conversation].reverse().find(m => m.role === 'assistant');
+  if (!lastAssistant?._fabienData?.produits_suggeres?.length) {
+    alert('Pose une question avec des produits avant de demander un guide de pose.');
+    return;
+  }
+
+  // Construire un message user "Guide de pose pour ces produits"
+  const productNames = lastAssistant._fabienData.produits_suggeres.map(p => p.name).join(', ');
+  const guideRequest = `Donne-moi le guide de pose détaillé pour : ${productNames}`;
+
+  state.conversation.push({ role: 'user', content: guideRequest });
+
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  renderMessages();
+  showTypingIndicator();
+
+  try {
+    const apiMessages = state.conversation.map(m => ({
+      role: m.role,
+      content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+    }));
+
+    const res = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        agent: 'guide_pose',
+        messages: apiMessages
+      })
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+    removeTypingIndicator();
+
+    state.conversation.push({
+      role: 'assistant',
+      content: data.message || '',
+      _fabienData: data
+    });
+
+    renderMessages();
+    saveCurrentConversation();
+    updateActionsState();
+  } catch (err) {
+    removeTypingIndicator();
+    state.conversation.push({
+      role: 'assistant',
+      content: `❌ Désolé, le guide de pose n'a pas pu être généré : ${err.message}`,
+      _fabienData: { message: `❌ Désolé, le guide de pose n'a pas pu être généré : ${err.message}` }
+    });
+    renderMessages();
+  }
+}
+
+function printGuide() {
+  // Récupère le dernier guide_pose et l'imprime via fenêtre dédiée
+  const lastGuide = [...state.conversation].reverse().find(m =>
+    m.role === 'assistant' && m._fabienData?.agent === 'guide_pose'
+  );
+  if (!lastGuide) {
+    alert('Aucun guide de pose à imprimer. Demande-en un d\'abord.');
+    return;
+  }
+
+  const html = renderMarkdown(lastGuide._fabienData.message || lastGuide.content);
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Guide de pose Fabien — FAIRĒKO</title>
+    <style>
+      body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 20px; color: #1a1a17; line-height: 1.6; }
+      h1 { font-family: Georgia, serif; color: #2d4a2b; border-bottom: 2px solid #5a7548; padding-bottom: 10px; }
+      h2 { color: #2d4a2b; margin-top: 30px; }
+      h3 { color: #5a7548; }
+      ul { padding-left: 20px; }
+      .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e8e3d6; font-size: 11px; color: #6b6b66; }
+    </style></head><body>${html}
+    <div class="footer">Guide généré par Fabien — FAIRĒKO. Vérifiez les données critiques sur les fiches officielles.</div>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+function updateActionsState() {
+  const hasMsg = state.conversation.length >= 2;
+  document.getElementById('action-recap').disabled = !hasMsg;
+  document.getElementById('action-guide').disabled = !hasMsg;
+}
+
+function exportConversation() {
+  const text = state.conversation.map(m => {
+    const role = m.role === 'user' ? '— VOUS —' : '— FABIEN —';
+    const content = typeof m.content === 'string' ? m.content : (m._fabienData?.message || '');
+    return `${role}\n${content}\n`;
+  }).join('\n');
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fabien-conversation-${new Date().toISOString().slice(0, 10)}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function requestDevis() {
+  const subject = encodeURIComponent('Demande de devis FAIREKO depuis Fabien');
+  const body = encodeURIComponent('Bonjour,\n\nSuite à ma conversation avec Fabien, je souhaite recevoir un devis pour les produits suivants :\n\n[liste à compléter]\n\nMerci.');
+  window.location.href = `mailto:hello@nbsdistribution.eu?subject=${subject}&body=${body}`;
+}
+
+// ================================================================
+// VOIX (Web Speech API native)
+// ================================================================
+let recognition = null;
+let isRecording = false;
+
+function toggleVoiceInput() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    alert('La dictée vocale n\'est pas supportée par votre navigateur.');
+    return;
+  }
+
+  if (isRecording) {
+    recognition.stop();
+    return;
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.lang = 'fr-FR';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  const ta = document.getElementById('user-input');
+  const btn = document.getElementById('voice-btn');
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.style.color = 'var(--fk-danger)';
+  };
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results)
+      .map(r => r[0].transcript)
+      .join('');
+    ta.value = transcript;
+    ta.dispatchEvent(new Event('input'));
+  };
+  recognition.onerror = () => { isRecording = false; btn.style.color = ''; };
+  recognition.onend = () => { isRecording = false; btn.style.color = ''; };
+
+  recognition.start();
+}
+</script>
+
+</body>
+</html>
