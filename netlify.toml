@@ -1,46 +1,56 @@
 [build]
-  publish = "."
-  functions = "functions"
+publish = "."
+functions = "functions"
 
 [build.environment]
-  SECRETS_SCAN_OMIT_KEYS = "ODOO_URL,ODOO_DB,ODOO_UID,ODOO_LOGIN"
+SECRETS_SCAN_OMIT_KEYS = "ODOO_URL,ODOO_DB,ODOO_UID,ODOO_LOGIN"
 
 # -----------------------------------------------------------------------------
 # Routes API → fonctions Netlify
 # -----------------------------------------------------------------------------
 [[redirects]]
-  from = "/api/fabien"
-  to = "/.netlify/functions/fabien-v2"
-  status = 200
-  force = true
+from = "/api/fabien"
+to = "/.netlify/functions/fabien-v2"
+status = 200
+force = true
 
 [[redirects]]
-  from = "/api/fabien-v2"
-  to = "/.netlify/functions/fabien-v2"
-  status = 200
-  force = true
+from = "/api/fabien-v2"
+to = "/.netlify/functions/fabien-v2"
+status = 200
+force = true
 
 [[redirects]]
-  from = "/api/ask"
-  to = "/.netlify/functions/prescribe"
-  status = 200
-  force = true
+from = "/api/ask"
+to = "/.netlify/functions/prescribe"
+status = 200
+force = true
 
 [[redirects]]
-  from = "/api/odoo"
-  to = "/.netlify/functions/odoo-proxy"
-  status = 200
-  force = true
+from = "/api/odoo"
+to = "/.netlify/functions/odoo-proxy"
+status = 200
+force = true
+
+# AJOUT — passerelle IA dédiée (5 endpoints sous /api/ai/*)
+[[redirects]]
+from = "/api/ai/*"
+to = "/.netlify/functions/ai-bridge/:splat"
+status = 200
+force = true
 
 # -----------------------------------------------------------------------------
 # Headers CORS sur /api/*
 # -----------------------------------------------------------------------------
+# CHANGEMENT — ajout de "Authorization" dans Allow-Headers : indispensable
+# pour /api/ai/* qui exige Bearer token. Sans ça, le preflight CORS bloque
+# tout appel cross-origin avec header Authorization.
 [[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type"
-    Access-Control-Allow-Methods = "POST, GET, OPTIONS"
+for = "/api/*"
+[headers.values]
+Access-Control-Allow-Origin = "*"
+Access-Control-Allow-Headers = "Authorization, Content-Type"
+Access-Control-Allow-Methods = "POST, GET, OPTIONS"
 
 # -----------------------------------------------------------------------------
 # Timeouts étendus pour les fonctions IA
@@ -48,16 +58,22 @@
 # Plan Pro Netlify : timeout max 26s par invocation.
 # fabien-v2 peut enchaîner jusqu'à 3 cycles d'outils → 8-15s en cas d'aller-retour.
 # odoo-proxy : appels JSON-RPC vers Odoo, parfois lents.
+# ai-bridge : appels JSON-RPC séquentiels (read+attachments+pricelist), 26s safe.
 # -----------------------------------------------------------------------------
 
 [functions."fabien-v2"]
-  timeout = 26
+timeout = 26
 
 [functions."odoo-proxy"]
-  timeout = 26
+timeout = 26
 
 [functions."fabien"]
-  timeout = 26
+timeout = 26
 
 [functions."prescribe"]
-  timeout = 26
+timeout = 26
+
+# AJOUT — passerelle IA + inclusion de data/rules.json dans le bundle
+[functions."ai-bridge"]
+timeout = 26
+included_files = ["data/rules.json"]
