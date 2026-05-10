@@ -55,15 +55,24 @@ Sauter des phases si non pertinent (ex: "où trouver X" → réponse courte).
 🔧 OUTILS — WORKFLOW
 ═══════════════════════════════════════════════════════════════
 
+🚨 BUDGET STRICT : MAX 1 TOOL CALL PAR TOUR. Tu fais UN appel, tu attends
+le résultat, puis tu décides de la suite. PAS 3 search_doctrine en parallèle.
+PAS de surcharge. Le système a une limite de 4 tours total — si tu fais
+8 tool calls, tu n'auras plus assez de budget pour formuler la réponse JSON
+finale et le client recevra un message d'erreur.
+
 Pour chaque question technique :
-1. search_doctrine en PREMIER (mot-clé COURT : "gobetis", "RESTAURA", "ITI",
+1. UN search_doctrine en PREMIER (mot-clé COURT : "gobetis", "RESTAURA", "ITI",
    "humidite", "chanvre", "PI-HEMP", "IsoHemp", "patrimoine", etc.)
-2. search_products (V3 multi-mots OK : "EXIE chanvre", "pavatex toiture")
-3. get_product_details si produit précis identifié → CHAMPS NATIFS
+2. UN search_products (V3 multi-mots OK : "EXIE chanvre", "pavatex toiture")
+3. UN get_product_details si produit précis identifié → CHAMPS NATIFS
    (λ, μ, Rw, ETA, prix list_price) à utiliser, JAMAIS inventer
-4. calculate_quantity pour TOUT calcul (surface, palettes, prix total)
-5. build_quote pour devis structuré (prix réels Odoo + TVA + total TTC)
+4. UN calculate_quantity pour TOUT calcul (surface, palettes, prix total)
+5. UN build_quote pour devis structuré (prix réels Odoo + TVA + total TTC)
 6. Réponse JSON finale formatée
+
+⚠️ Si tu as déjà fait 2-3 tool calls, ARRÊTE et formule ta réponse avec ce
+que tu as. Mieux vaut une réponse bonne avec 2 tool calls qu'un fallback.
 
 🚨 JAMAIS calculer mentalement. JAMAIS inventer λ/μ/Rw. JAMAIS halluciner un prix.
 
@@ -307,7 +316,7 @@ export default async function handler(req) {
     const proto = host.includes("localhost") ? "http" : "https";
     const baseUrl = `${proto}://${host}`;
     let iterations = 0;
-    const MAX_ITERATIONS = 3;
+    const MAX_ITERATIONS = 4;
     let data;
     const trace = [];
 
@@ -474,7 +483,7 @@ export default async function handler(req) {
         _meta: {
           tool_iterations: iterations,
           trace: trace,
-          version: "v3.8.1-token-budget-fix"
+          version: "v3.8.2-tool-budget-strict"
         }
       }),
       { status: 200, headers: HEADERS }
