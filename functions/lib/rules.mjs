@@ -8,10 +8,7 @@
 // Status opposable (calculé) : documente | partiel | a_verifier
 
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { join } from 'node:path';
 
 const EVIDENCE_TO_OPPOSABLE = {
   DOCUMENT_OFFICIEL: 'documente',
@@ -22,18 +19,19 @@ const EVIDENCE_TO_OPPOSABLE = {
 
 let cachedRules = null;
 let cachedAt = 0;
-const RULES_TTL_MS = 60 * 1000; // 1 min — re-lecture régulière au cas où le repo est redéployé
+const RULES_TTL_MS = 60 * 1000;
 
 async function loadRules() {
   if (cachedRules && Date.now() - cachedAt < RULES_TTL_MS) return cachedRules;
 
-  // Le fichier est packagé dans le bundle Netlify Function via netlify.toml
-  // included_files. Sinon on essaie plusieurs paths.
+  // Netlify Functions : LAMBDA_TASK_ROOT pointe vers la racine du bundle.
+  // included_files dans netlify.toml met data/rules.json à cette racine.
   const candidates = [
-    join(__dirname, '..', '..', '..', 'data', 'rules.json'),
-    join(__dirname, '..', '..', 'data', 'rules.json'),
+    process.env.LAMBDA_TASK_ROOT ? join(process.env.LAMBDA_TASK_ROOT, 'data', 'rules.json') : null,
     join(process.cwd(), 'data', 'rules.json'),
-  ];
+    join(process.cwd(), '..', '..', 'data', 'rules.json'),
+    '/var/task/data/rules.json',
+  ].filter(Boolean);
 
   for (const p of candidates) {
     try {
