@@ -307,7 +307,7 @@ export default async function handler(req) {
     const proto = host.includes("localhost") ? "http" : "https";
     const baseUrl = `${proto}://${host}`;
     let iterations = 0;
-    const MAX_ITERATIONS = 6;
+    const MAX_ITERATIONS = 3;
     let data;
     const trace = [];
 
@@ -474,7 +474,7 @@ export default async function handler(req) {
         _meta: {
           tool_iterations: iterations,
           trace: trace,
-          version: "v3.8-compact-rate-limit-fix"
+          version: "v3.8.1-token-budget-fix"
         }
       }),
       { status: 200, headers: HEADERS }
