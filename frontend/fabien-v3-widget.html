@@ -1,55 +1,119 @@
+
 <!--
-  fabien-v3-widget.html
-  ─────────────────────
-  Widget chat FAIRĒKO V3 — drop-in autonome.
-  Aucune dépendance, ~250 lignes JS, à coller dans <body> du site
-  ou injecter via Odoo custom_code_head.
+  fabien-v3-widget.html v2 (mascotte)
+  ────────────────────────────────────
+  Widget chat FAIRĒKO V3 avec mascotte Fabien dynamique.
+
+  6 poses utilisées selon l'état :
+  - 01 bras croisés       → idle après réponse
+  - 02 main tendue        → ouverture / accueil
+  - 03 index levé         → questions
+  - 04 matériaux main     → réponse avec produits ⭐
+  - 05 mains ouvertes     → expert_required / vigilances
+  - 06 tablette           → loading (Fabien réfléchit)
+  + tête recadrée pour la bulle fermée.
+
+  Images attendues sous /frontend/fabien/ :
+    fabien_head.webp
+    fabien_01_bras-croises.webp
+    fabien_02_main-tendue.webp
+    fabien_03_index-leve.webp
+    fabien_04_materiaux-main.webp
+    fabien_05_mains-ouvertes.webp
+    fabien_06_tablette.webp
 
   Connexion : POST /api/v3/chat (Netlify Function fabien-v3.mjs)
-
-  Usage standalone (test) : ouvrir ce fichier dans un navigateur, ça marche.
 -->
 <style>
+  :root {
+    --fk-green: #2c5f4a;
+    --fk-green-dark: #1e4434;
+    --fk-bg: #f7f5f0;
+  }
+
+  /* Bulle fermée — avatar tête sur fond vert */
   #fk-fabien-bubble {
     position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-    width: 56px; height: 56px; border-radius: 50%;
-    background: #2c5f4a; color: white; border: none; cursor: pointer;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    font-size: 28px; line-height: 1;
-    display: flex; align-items: center; justify-content: center;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: var(--fk-green); border: 3px solid white; cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+    padding: 0; overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
   }
+  #fk-fabien-bubble:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+  #fk-fabien-bubble img {
+    width: 100%; height: 100%; object-fit: cover; object-position: center 30%;
+    display: block;
+  }
+
+  /* Pulse subtil quand fermé pour attirer l'attention */
+  #fk-fabien-bubble::before {
+    content: ''; position: absolute; inset: -3px;
+    border-radius: 50%; border: 2px solid var(--fk-green);
+    animation: fk-pulse 2.5s ease-out infinite; pointer-events: none;
+  }
+  @keyframes fk-pulse {
+    0% { transform: scale(1); opacity: 0.6; }
+    100% { transform: scale(1.4); opacity: 0; }
+  }
+
+  /* Panel — avec mascotte plein corps à gauche */
   #fk-fabien-panel {
-    position: fixed; bottom: 90px; right: 24px; z-index: 9998;
-    width: 380px; max-width: calc(100vw - 32px); height: 600px; max-height: calc(100vh - 120px);
-    background: white; border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    position: fixed; bottom: 100px; right: 24px; z-index: 9998;
+    width: 380px; max-width: calc(100vw - 32px); height: 600px; max-height: calc(100vh - 140px);
+    background: white; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.25);
     display: none; flex-direction: column; overflow: hidden;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-  #fk-fabien-panel.fk-open { display: flex; }
+  #fk-fabien-panel.fk-open { display: flex; animation: fk-slide-in 0.3s ease-out; }
+  @keyframes fk-slide-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Mascotte plein corps à gauche du panel (desktop seulement) */
+  #fk-fabien-mascot-wrap {
+    position: fixed; bottom: 100px; right: 408px; z-index: 9997;
+    width: 200px; height: 340px;
+    pointer-events: none;
+    display: none;
+  }
+  #fk-fabien-panel.fk-open ~ #fk-fabien-mascot-wrap { display: block; animation: fk-slide-mascot 0.4s ease-out 0.1s both; }
+  @keyframes fk-slide-mascot { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+  #fk-fabien-mascot {
+    width: 100%; height: 100%; object-fit: contain; object-position: bottom center;
+    transition: opacity 0.25s ease-in-out;
+  }
+  #fk-fabien-mascot.fk-fade { opacity: 0; }
+  /* Sur mobile / petit écran, on cache la mascotte plein corps */
+  @media (max-width: 700px) {
+    #fk-fabien-mascot-wrap { display: none !important; }
+  }
+
+  /* Header */
   #fk-fabien-header {
-    padding: 14px 16px; background: #2c5f4a; color: white;
+    padding: 14px 16px; background: var(--fk-green); color: white;
     display: flex; justify-content: space-between; align-items: center;
   }
   #fk-fabien-header strong { font-size: 15px; }
-  #fk-fabien-header .fk-sub { font-size: 11px; opacity: 0.8; display: block; margin-top: 2px; }
+  #fk-fabien-header .fk-sub { font-size: 11px; opacity: 0.85; display: block; margin-top: 2px; }
   #fk-fabien-close { background: none; border: none; color: white; font-size: 22px; cursor: pointer; line-height: 1; }
+
+  /* Messages */
   #fk-fabien-messages {
     flex: 1; overflow-y: auto; padding: 16px;
     display: flex; flex-direction: column; gap: 12px;
-    background: #f7f5f0;
+    background: var(--fk-bg);
   }
   .fk-msg { padding: 10px 14px; border-radius: 14px; max-width: 85%; line-height: 1.45; font-size: 14px; }
-  .fk-msg-user { align-self: flex-end; background: #2c5f4a; color: white; border-bottom-right-radius: 4px; }
+  .fk-msg-user { align-self: flex-end; background: var(--fk-green); color: white; border-bottom-right-radius: 4px; }
   .fk-msg-bot { align-self: flex-start; background: white; color: #222; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
   .fk-card { background: white; border: 1px solid #e0dcd0; border-radius: 10px; padding: 12px; margin-top: 6px; font-size: 13px; }
-  .fk-card h4 { margin: 0 0 6px; font-size: 14px; color: #2c5f4a; }
+  .fk-card h4 { margin: 0 0 6px; font-size: 14px; color: var(--fk-green); }
   .fk-card .fk-explain { margin: 0 0 10px; color: #444; font-size: 13px; }
   .fk-product { display: flex; flex-direction: column; padding: 8px; border: 1px solid #eae6dc; border-radius: 6px; margin-top: 6px; background: #fafaf6; }
   .fk-product-name { font-weight: 600; font-size: 13px; color: #1a1a1a; }
   .fk-product-why { font-size: 12px; color: #555; margin-top: 2px; }
   .fk-product-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .fk-btn { padding: 6px 10px; border-radius: 5px; font-size: 12px; border: 1px solid #2c5f4a; background: white; color: #2c5f4a; cursor: pointer; text-decoration: none; }
-  .fk-btn-primary { background: #2c5f4a; color: white; }
+  .fk-btn { padding: 6px 10px; border-radius: 5px; font-size: 12px; border: 1px solid var(--fk-green); background: white; color: var(--fk-green); cursor: pointer; text-decoration: none; }
+  .fk-btn-primary { background: var(--fk-green); color: white; }
   .fk-vigilance { margin-top: 8px; padding: 8px; background: #fff7e6; border-left: 3px solid #d97706; border-radius: 4px; font-size: 12px; }
   .fk-vigilance strong { color: #92400e; }
   .fk-confidence { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-bottom: 10px; }
@@ -60,12 +124,14 @@
   .fk-question-list li { margin: 3px 0; font-size: 13px; }
   #fk-fabien-input-row { padding: 12px; border-top: 1px solid #eee; background: white; display: flex; gap: 8px; }
   #fk-fabien-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: none; min-height: 40px; max-height: 100px; font-family: inherit; }
-  #fk-fabien-send { padding: 0 16px; background: #2c5f4a; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  #fk-fabien-send { padding: 0 16px; background: var(--fk-green); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
   #fk-fabien-send:disabled { opacity: 0.5; cursor: not-allowed; }
   .fk-typing { font-style: italic; color: #888; font-size: 13px; }
 </style>
 
-<button id="fk-fabien-bubble" aria-label="Ouvrir l'assistant Fabien">💬</button>
+<button id="fk-fabien-bubble" aria-label="Ouvrir l'assistant Fabien">
+  <img src="/frontend/fabien/fabien_head.webp" alt="Fabien">
+</button>
 
 <div id="fk-fabien-panel" role="dialog" aria-label="Assistant Fabien">
   <div id="fk-fabien-header">
@@ -82,10 +148,32 @@
   </div>
 </div>
 
+<div id="fk-fabien-mascot-wrap" aria-hidden="true">
+  <img id="fk-fabien-mascot" src="/frontend/fabien/fabien_02_main-tendue.webp" alt="">
+</div>
+
 <script>
 (function() {
-  const ENDPOINT = "/api/v3/chat"; // Netlify redirect → fabien-v3.mjs
-  const SHOP_BASE = "https://www.faireko.be"; // pour préfixer les website_url relatifs
+  const ENDPOINT = "/api/v3/chat";
+  const SHOP_BASE = "https://www.faireko.be";
+
+  // Mapping état → fichier image plein corps
+  const POSES = {
+    idle:      "/frontend/fabien/fabien_01_bras-croises.webp",
+    welcome:   "/frontend/fabien/fabien_02_main-tendue.webp",
+    questions: "/frontend/fabien/fabien_03_index-leve.webp",
+    products:  "/frontend/fabien/fabien_04_materiaux-main.webp",
+    expert:    "/frontend/fabien/fabien_05_mains-ouvertes.webp",
+    loading:   "/frontend/fabien/fabien_06_tablette.webp",
+  };
+
+  // Préchargement : charge toutes les poses en arrière-plan dès le chargement
+  const _preload = [];
+  Object.values(POSES).forEach(src => {
+    const i = new Image();
+    i.src = src;
+    _preload.push(i);
+  });
 
   const $bubble = document.getElementById("fk-fabien-bubble");
   const $panel = document.getElementById("fk-fabien-panel");
@@ -93,13 +181,28 @@
   const $msgs = document.getElementById("fk-fabien-messages");
   const $input = document.getElementById("fk-fabien-input");
   const $send = document.getElementById("fk-fabien-send");
+  const $mascot = document.getElementById("fk-fabien-mascot");
 
-  // Historique de conversation (envoyé à chaque appel)
+  // Historique de conversation
   const history = [];
+  let _currentPose = "welcome";
+
+  // Change la pose avec un cross-fade
+  function setPose(name) {
+    if (!POSES[name] || _currentPose === name) return;
+    _currentPose = name;
+    $mascot.classList.add("fk-fade");
+    setTimeout(() => {
+      $mascot.src = POSES[name];
+      $mascot.classList.remove("fk-fade");
+    }, 250);
+  }
 
   $bubble.addEventListener("click", () => {
+    const willOpen = !$panel.classList.contains("fk-open");
     $panel.classList.toggle("fk-open");
-    if ($panel.classList.contains("fk-open") && history.length === 0) {
+    if (willOpen && history.length === 0) {
+      setPose("welcome");
       addBotText("Bonjour ! Je suis Fabien, l'assistant FAIRĒKO. Décrivez-moi votre projet (que voulez-vous faire ? mur, sol, toiture ? intérieur ou extérieur ? bâti ancien ?) et je vous oriente vers les bons matériaux.");
     }
   });
@@ -126,21 +229,34 @@
       });
       const data = await r.json();
       if (!data.ok) {
+        setPose("idle");
         addBotText("⚠️ Une erreur est survenue. Réessayez ou contactez hello@nbsdistribution.eu.");
         console.error("[fabien-v3]", data);
         return;
       }
 
-      // Si on a une card structurée, on rend riche. Sinon raw.
       if (data.card) {
         renderCard(data.card);
-        // Pour la prochaine itération, on stocke le résumé textuel + JSON
         history.push({ role: "assistant", content: data.raw });
+        // Pose selon le type de réponse
+        if (data.card.kind === "questions") {
+          setPose("questions");
+        } else if (data.card.confidence === "expert_required") {
+          setPose("expert");
+        } else if (data.card.solutions && data.card.solutions.length) {
+          setPose("products");
+        } else if (data.card.vigilances && data.card.vigilances.length) {
+          setPose("expert");
+        } else {
+          setPose("idle");
+        }
       } else {
         addBotText(data.raw || "(pas de réponse)");
         history.push({ role: "assistant", content: data.raw || "" });
+        setPose("idle");
       }
     } catch (e) {
+      setPose("idle");
       addBotText("⚠️ Erreur réseau. Réessayez.");
       console.error(e);
     } finally {
@@ -151,6 +267,7 @@
   function setLoading(on) {
     $send.disabled = on;
     if (on) {
+      setPose("loading");
       const div = document.createElement("div");
       div.className = "fk-msg fk-msg-bot fk-typing";
       div.id = "fk-typing";
@@ -180,11 +297,9 @@
 
   // ─── Card → UI mapping ─────────────────────────────────────────────
   function renderCard(card) {
-    // Texte d'intro avant la card si dispo (raw mais sans le JSON)
     const wrap = document.createElement("div");
     wrap.className = "fk-msg fk-msg-bot";
 
-    // 1. Reformulation
     if (card.summary) {
       const p = document.createElement("p");
       p.style.margin = "0 0 8px";
@@ -194,15 +309,14 @@
       wrap.appendChild(p);
     }
 
-    // 2. Mode "questions"
     if (card.kind === "questions" && Array.isArray(card.questions) && card.questions.length) {
       const q = document.createElement("div");
       q.innerHTML = "<strong>Pour mieux vous orienter :</strong>";
       const ul = document.createElement("ul");
       ul.className = "fk-question-list";
-      card.questions.forEach(qt => {
+      card.questions.forEach((qq) => {
         const li = document.createElement("li");
-        li.textContent = qt;
+        li.textContent = qq;
         ul.appendChild(li);
       });
       q.appendChild(ul);
@@ -212,167 +326,121 @@
       return;
     }
 
-    // 3. Mode "answer" : solutions
-    if (Array.isArray(card.solutions)) {
-      card.solutions.forEach(sol => wrap.appendChild(renderSolution(sol, card.cta)));
+    if (card.confidence) {
+      const conf = document.createElement("div");
+      const m = { high: ["fk-conf-high", "🟢 Compatible"], medium: ["fk-conf-medium", "🟠 Validation recommandée"], expert_required: ["fk-conf-expert", "🔴 Expertise requise"] };
+      const c = m[card.confidence] || m.medium;
+      conf.className = "fk-confidence " + c[0];
+      conf.textContent = c[1];
+      wrap.appendChild(conf);
     }
 
-    // 4. Documents joints
-    if (Array.isArray(card.documents) && card.documents.length) {
-      const docDiv = document.createElement("div");
-      docDiv.className = "fk-card";
-      docDiv.innerHTML = "<h4>📄 Documents</h4>";
-      card.documents.forEach(d => {
-        const a = document.createElement("a");
-        a.href = d.url.startsWith("/") ? SHOP_BASE + d.url : d.url;
-        a.target = "_blank"; a.rel = "noopener";
-        a.textContent = d.name;
-        a.style.display = "block";
-        a.style.fontSize = "12px";
-        a.style.color = "#2c5f4a";
-        a.style.marginTop = "4px";
-        docDiv.appendChild(a);
+    if (Array.isArray(card.solutions) && card.solutions.length) {
+      card.solutions.forEach((sol) => {
+        const cardDiv = document.createElement("div");
+        cardDiv.className = "fk-card";
+        if (sol.title) {
+          const h = document.createElement("h4");
+          h.textContent = sol.title;
+          cardDiv.appendChild(h);
+        }
+        if (sol.explanation) {
+          const p = document.createElement("p");
+          p.className = "fk-explain";
+          p.textContent = sol.explanation;
+          cardDiv.appendChild(p);
+        }
+        if (Array.isArray(sol.products)) {
+          sol.products.forEach((prod) => {
+            const pdiv = document.createElement("div");
+            pdiv.className = "fk-product";
+            const nm = document.createElement("div");
+            nm.className = "fk-product-name";
+            nm.textContent = prod.name || ("Produit " + (prod.product_id || "?"));
+            pdiv.appendChild(nm);
+            if (prod.why) {
+              const why = document.createElement("div");
+              why.className = "fk-product-why";
+              why.textContent = prod.why;
+              pdiv.appendChild(why);
+            }
+            const actions = document.createElement("div");
+            actions.className = "fk-product-actions";
+            if (prod.website_url) {
+              const a = document.createElement("a");
+              a.className = "fk-btn";
+              a.href = (prod.website_url.startsWith("http") ? prod.website_url : SHOP_BASE + prod.website_url);
+              a.target = "_blank"; a.rel = "noopener";
+              a.textContent = "Voir la fiche";
+              actions.appendChild(a);
+            }
+            if (prod.product_id) {
+              const b = document.createElement("button");
+              b.className = "fk-btn fk-btn-primary";
+              b.textContent = "Ajouter au devis";
+              b.addEventListener("click", () => addToCart(prod));
+              actions.appendChild(b);
+            }
+            pdiv.appendChild(actions);
+            cardDiv.appendChild(pdiv);
+          });
+        }
+        wrap.appendChild(cardDiv);
       });
-      wrap.appendChild(docDiv);
+    }
+
+    if (Array.isArray(card.vigilances) && card.vigilances.length) {
+      const v = document.createElement("div");
+      v.className = "fk-vigilance";
+      v.innerHTML = "<strong>⚠️ Points d'attention :</strong><ul style='margin:4px 0 0;padding-left:18px'>"
+        + card.vigilances.map(x => "<li>" + escapeHtml(x) + "</li>").join("")
+        + "</ul>";
+      wrap.appendChild(v);
+    }
+
+    if (card.next_step) {
+      const ns = document.createElement("div");
+      ns.style.marginTop = "10px";
+      ns.style.fontSize = "13px";
+      ns.style.color = "#444";
+      ns.innerHTML = "<strong>Prochaine étape :</strong> " + escapeHtml(card.next_step);
+      wrap.appendChild(ns);
     }
 
     $msgs.appendChild(wrap);
     scroll();
   }
 
-  function renderSolution(sol, ctas) {
-    const card = document.createElement("div");
-    card.className = "fk-card";
+  async function addToCart(prod) {
+    const qty = prompt("Quantité pour " + (prod.name || "ce produit") + " ?", "1");
+    if (!qty) return;
+    const n = parseInt(qty, 10);
+    if (!n || n < 1) return;
 
-    const conf = sol.confidence || "medium";
-    const confLabel = {
-      high: "🟢 Compatible",
-      medium: "🟠 Validation recommandée",
-      expert_required: "🔴 Expertise requise"
-    }[conf] || conf;
-    const confClass = { high: "fk-conf-high", medium: "fk-conf-medium", expert_required: "fk-conf-expert" }[conf] || "fk-conf-medium";
-    card.innerHTML = '<span class="fk-confidence ' + confClass + '">' + confLabel + '</span>';
-
-    if (sol.title) {
-      const h = document.createElement("h4");
-      h.textContent = sol.title;
-      card.appendChild(h);
-    }
-    if (sol.explanation) {
-      const p = document.createElement("p");
-      p.className = "fk-explain";
-      p.textContent = sol.explanation;
-      card.appendChild(p);
-    }
-
-    // Produits associés
-    if (Array.isArray(sol.products)) {
-      sol.products.forEach(p => card.appendChild(renderProduct(p, ctas)));
-    }
-
-    // Vigilances
-    if (Array.isArray(sol.vigilances) && sol.vigilances.length) {
-      const v = document.createElement("div");
-      v.className = "fk-vigilance";
-      v.innerHTML = "<strong>⚠ Vigilance :</strong>";
-      const ul = document.createElement("ul");
-      ul.style.margin = "4px 0 0"; ul.style.paddingLeft = "18px";
-      sol.vigilances.forEach(t => {
-        const li = document.createElement("li");
-        li.textContent = t;
-        ul.appendChild(li);
-      });
-      v.appendChild(ul);
-      card.appendChild(v);
-    }
-
-    return card;
-  }
-
-  function renderProduct(p, ctas) {
-    const div = document.createElement("div");
-    div.className = "fk-product";
-    const url = p.url ? (p.url.startsWith("/") ? SHOP_BASE + p.url : p.url) : null;
-
-    const name = document.createElement("div");
-    name.className = "fk-product-name";
-    name.textContent = p.name || ("Produit #" + p.id);
-    div.appendChild(name);
-
-    if (p.why) {
-      const why = document.createElement("div");
-      why.className = "fk-product-why";
-      why.textContent = p.why;
-      div.appendChild(why);
-    }
-
-    const actions = document.createElement("div");
-    actions.className = "fk-product-actions";
-    const wantedCtas = Array.isArray(ctas) && ctas.length ? ctas : ["view_product", "request_quote"];
-
-    if (wantedCtas.includes("view_product") && url) {
-      const a = document.createElement("a");
-      a.href = url; a.target = "_blank"; a.rel = "noopener";
-      a.className = "fk-btn fk-btn-primary";
-      a.textContent = "Voir produit";
-      actions.appendChild(a);
-    }
-    if (wantedCtas.includes("request_quote")) {
-      const a = document.createElement("a");
-      a.href = "mailto:hello@nbsdistribution.eu?subject=Demande%20de%20devis%20-%20" + encodeURIComponent(p.name || "");
-      a.className = "fk-btn";
-      a.textContent = "Demander devis";
-      actions.appendChild(a);
-    }
-    if (wantedCtas.includes("create_draft_cart")) {
-      const b = document.createElement("button");
-      b.className = "fk-btn";
-      b.textContent = "Panier brouillon";
-      b.addEventListener("click", () => createDraftCart(p));
-      actions.appendChild(b);
-    }
-    div.appendChild(actions);
-    return div;
-  }
-
-  // ─── CTA panier brouillon (clic utilisateur uniquement) ───────────
-  async function createDraftCart(product) {
-    const email = prompt("Email pour rattacher le panier (optionnel) :");
-    if (email === null) return; // annulé
-    const qty = parseFloat(prompt("Quantité ?", "1"));
-    if (!qty || qty <= 0) return;
-
-    addBotText("Création du panier brouillon en cours…");
+    setLoading(true);
     try {
-      // Appel direct au bridge — token côté backend Netlify pour ne pas l'exposer
-      // donc on passe par notre fabien-v3 qui proxy. Mais cart/create n'est PAS dans
-      // les tools du LLM — on fait un endpoint dédié /api/v3/cart-create
       const r = await fetch("/api/v3/cart-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          partner_email: email || undefined,
-          audience: "b2c",
-          lines: [{ product_id: product.id, qty }],
-          note: "Panier généré via widget Fabien V3"
+          items: [{ product_id: prod.product_id, qty: n }],
+          audience: "client",
         }),
       });
       const data = await r.json();
-      if (data.ok && data.data?.portal_url) {
-        addBotText("✅ Panier créé. " + (data.data.portal_url ? "Lien : " + SHOP_BASE + data.data.portal_url : ""));
-      } else if (data.ok) {
-        addBotText("✅ Panier brouillon créé (n° " + (data.data?.name || data.data?.sale_order_id) + "). Notre équipe vous recontacte.");
+      if (data.ok && data.shop_link) {
+        addBotText("✅ Ajouté au panier ! Cliquez ici : " + data.shop_link);
       } else {
-        addBotText("⚠️ Création panier échouée : " + (data.error?.message || "erreur inconnue"));
+        addBotText("⚠️ Impossible d'ajouter au panier. Essayez via la fiche produit.");
       }
     } catch (e) {
-      addBotText("⚠️ Erreur réseau panier.");
+      addBotText("⚠️ Erreur réseau lors de l'ajout au panier.");
+    } finally {
+      setLoading(false);
     }
   }
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  }
   function scroll() { $msgs.scrollTop = $msgs.scrollHeight; }
+  function escapeHtml(s) { return String(s || "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 })();
 </script>
