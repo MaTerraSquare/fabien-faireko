@@ -79,7 +79,7 @@ async function runTool(name, input) {
 }
 
 // ─── Anthropic call (raw fetch, pas de SDK) ──────────────────────────
-async function anthropicCall(messages) {
+async function anthropicCall(messages, attempt = 0) {
   const r = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: {
@@ -97,6 +97,16 @@ async function anthropicCall(messages) {
   });
   const j = await r.json();
   if (!r.ok) {
+    // Retry sur 429 (rate limit) et 529 (overloaded) avec backoff exponentiel
+    // 3 tentatives max : 1s, 3s, 8s
+    const retryable = r.status === 429 || r.status === 529 || r.status === 503;
+    if (retryable && attempt < 3) {
+      const delays = [1000, 3000, 8000];
+      const wait = delays[attempt];
+      console.log(`[anthropic] ${r.status} retry in ${wait}ms (attempt ${attempt + 1}/3)`);
+      await new Promise(resolve => setTimeout(resolve, wait));
+      return anthropicCall(messages, attempt + 1);
+    }
     const err = new Error(`Anthropic ${r.status}: ${j?.error?.message || "unknown"}`);
     err.status = r.status;
     err.detail = j;
