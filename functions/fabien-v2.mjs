@@ -816,8 +816,11 @@ export default async function handler(req) {
         body: JSON.stringify({
           // HYBRIDE Anthropic : tour principal en Sonnet 4.6 pour la qualité de prescription
           // (suivi de règles longues, enchaînement multi-tools, démêlage cas ambigus)
+          // V3.6 : max_tokens augmenté à 4096 — le JSON de sortie complet (systeme + couches +
+          // produits + 9 quick_options + actions + posture) faisait régulièrement >2000 tokens
+          // et Sonnet tronquait au milieu, faisant planter extractJSON → message "reformule".
           model: "claude-sonnet-4-6",
-          max_tokens: 2000,
+          max_tokens: 4096,
           temperature: 0.2,
           system: SYSTEM,
           messages: conversation,
@@ -882,8 +885,9 @@ export default async function handler(req) {
           body: JSON.stringify({
             // HYBRIDE Anthropic : tour de retry/reformulation JSON en Haiku 4.5
             // (tâche basique de reformatage, rapide et économique, ~5× moins cher que Sonnet)
+            // V3.6 : max_tokens 4096 pour ne plus tronquer le JSON de sortie complet
             model: "claude-haiku-4-5-20251001",
-            max_tokens: 2000,
+            max_tokens: 4096,
             temperature: 0.1,
             system: SYSTEM,
             messages: conversation
@@ -904,9 +908,29 @@ export default async function handler(req) {
     }
 
     if (!parsed) {
-      const fallback_message = text && text.length > 50
-        ? text.replace(/```json/gi, "").replace(/```/g, "").trim()
-        : "Je n'ai pas réussi à formuler une réponse exploitable. Reformule ta question avec un peu plus de contexte.";
+      // V3.6 — Fallback robuste : on essaie de récupérer le maximum d'info même si JSON cassé
+      // Cas typique : Sonnet a tronqué au milieu d'un champ → on extrait au moins "message"
+      let fallback_message = "";
+
+      if (text && text.length > 50) {
+        // Tentative 1 : nettoyer markdown et essayer de récupérer le message
+        const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+        // Tentative 2 : extraire le champ "message" même si JSON incomplet
+        const msgMatch = cleaned.match(/"message"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/);
+        if (msgMatch && msgMatch[1] && msgMatch[1].length > 30) {
+          fallback_message = msgMatch[1].replace(/\\"/g, '"').replace(/\\n/g, '\n');
+        } else if (cleaned.startsWith("{")) {
+          // JSON cassé sans message extractible → afficher le brut tronqué
+          fallback_message = "Je formule ma réponse mais elle a été tronquée. Voici ce que j'ai pu rédiger :\n\n"
+            + cleaned.replace(/^\s*\{[^"]*"[^"]*"\s*:\s*"/, "").substring(0, 800);
+        } else {
+          // Texte non-JSON (Sonnet a parlé naturellement) → on l'affiche tel quel
+          fallback_message = cleaned;
+        }
+      } else {
+        fallback_message = "Je n'ai pas réussi à formuler une réponse exploitable. Reformule ta question avec un peu plus de contexte (support, intérieur/extérieur, état du mur).";
+      }
 
       parsed = {
         message: fallback_message,
@@ -921,7 +945,8 @@ export default async function handler(req) {
           {id: "expert", label: "Appeler un expert", icon: "📞", enabled: true}
         ],
         etape_projet: "diagnostic",
-        sujet_principal: "autre"
+        sujet_principal: "autre",
+        _debug_fallback: true
       };
     }
 
