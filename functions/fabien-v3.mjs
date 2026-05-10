@@ -3,29 +3,18 @@
 // Fabien V3 — MVP frontend assistant pour FAIRĒKO.
 //
 // Ne touche JAMAIS Odoo directement. Consomme uniquement /api/ai/* (le bridge).
-// Endpoints utilisés :
-//   - POST /api/ai/products/search
-//   - GET  /api/ai/product/:id
-//   - POST /api/ai/documents/search
-//   - POST /api/ai/rules/match
-// (cart/create est appelé depuis le frontend uniquement après clic utilisateur,
-//  jamais automatiquement par le LLM.)
-//
-// Flow :
-//   1. Frontend POST /api/v3/chat avec { messages: [...] }
-//   2. On appelle Claude (claude-sonnet-4-20250514) avec un prompt système strict
-//   3. Claude peut appeler des "tools" qui sont en fait des proxies vers le bridge
-//   4. Quand Claude a fini, il renvoie une "card" structurée (JSON parsable)
-//   5. Le frontend rend la card.
+// Utilise fetch() direct vers api.anthropic.com (pas de SDK npm — comme fabien-v2).
 
-import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT, TOOLS } from "./_fabien_v3_prompt.mjs";
 
 // ─── Config ──────────────────────────────────────────────────────────
 const BRIDGE_BASE = process.env.URL || "https://fabien-faireko.netlify.app";
 const BRIDGE_TOKEN = process.env.AI_BRIDGE_TOKEN;
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-const MAX_TOOL_ITERATIONS = 5; // budget strict, cf. v2
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const ANTHROPIC_VERSION = "2023-06-01";
+const MAX_TOOL_ITERATIONS = 5;
 
 const HEADERS = {
   "Content-Type": "application/json; charset=utf-8",
@@ -89,6 +78,33 @@ async function runTool(name, input) {
   }
 }
 
+// ─── Anthropic call (raw fetch, pas de SDK) ──────────────────────────
+async function anthropicCall(messages) {
+  const r = await fetch(ANTHROPIC_URL, {
+    method: "POST",
+    headers: {
+      "x-api-key": ANTHROPIC_KEY,
+      "anthropic-version": ANTHROPIC_VERSION,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 1500,
+      system: SYSTEM_PROMPT,
+      tools: TOOLS,
+      messages,
+    }),
+  });
+  const j = await r.json();
+  if (!r.ok) {
+    const err = new Error(`Anthropic ${r.status}: ${j?.error?.message || "unknown"}`);
+    err.status = r.status;
+    err.detail = j;
+    throw err;
+  }
+  return j;
+}
+
 // ─── Handler ─────────────────────────────────────────────────────────
 export default async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: HEADERS });
@@ -103,7 +119,6 @@ export default async (req) => {
   const messages = Array.isArray(body.messages) ? body.messages : null;
   if (!messages || messages.length === 0) return new Response(JSON.stringify({ error: "messages array required" }), { status: 400, headers: HEADERS });
 
-  const client = new Anthropic({ apiKey: ANTHROPIC_KEY });
   const trace = [];
   let iterations = 0;
   let convo = [...messages];
@@ -111,13 +126,7 @@ export default async (req) => {
   try {
     while (iterations < MAX_TOOL_ITERATIONS) {
       iterations++;
-      const resp = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 1500,
-        system: SYSTEM_PROMPT,
-        tools: TOOLS,
-        messages: convo,
-      });
+      const resp = await anthropicCall(convo);
 
       const toolUses = resp.content.filter((b) => b.type === "tool_use");
       const textBlocks = resp.content.filter((b) => b.type === "text");
@@ -125,13 +134,12 @@ export default async (req) => {
       // Si pas de tool_use → on a la réponse finale
       if (toolUses.length === 0) {
         const finalText = textBlocks.map((b) => b.text).join("\n").trim();
-        // Tenter de parser une card JSON dans la réponse
         const card = extractCard(finalText);
         return new Response(JSON.stringify({
           ok: true,
           card: card,
           raw: finalText,
-          _meta: { iterations, trace, model: "claude-sonnet-4-20250514" },
+          _meta: { iterations, trace, model: ANTHROPIC_MODEL },
         }), { status: 200, headers: HEADERS });
       }
 
@@ -140,7 +148,7 @@ export default async (req) => {
       const toolResults = [];
       for (const tu of toolUses) {
         const result = await runTool(tu.name, tu.input);
-        trace.push({ tool: tu.name, input: tu.input, ok: result?.ok, count: result?.data?.length || result?.data?.count || null });
+        trace.push({ tool: tu.name, input: tu.input, ok: result?.ok });
         toolResults.push({
           type: "tool_result",
           tool_use_id: tu.id,
@@ -160,15 +168,12 @@ export default async (req) => {
     console.error("[fabien-v3] error:", err);
     return new Response(JSON.stringify({
       ok: false,
-      error: { code: "internal_error", message: err.message },
+      error: { code: "internal_error", message: err.message, status: err.status },
       _meta: { iterations, trace },
     }), { status: 500, headers: HEADERS });
   }
 };
 
-// ─── Card extractor ──────────────────────────────────────────────────
-// Fabien doit terminer sa réponse par un bloc ```json {...} ```
-// Si présent → on l'extrait pour le frontend. Sinon on renvoie raw seulement.
 function extractCard(text) {
   if (!text) return null;
   const m = text.match(/```json\s*([\s\S]*?)\s*```/);
