@@ -5,22 +5,30 @@
  *
  * Fichier    : netlify/functions/odoo-proxy.mjs
  * Route      : /api/odoo  (voir netlify.toml)
- * Version    : 3.0  —  10 mai 2026
+ * Version    : 3.1  —  10 mai 2026
  *
- * Changements V3 vs V2 :
- *   - FIX bug recherche multi-mots dans search_products (tokenize + AND par mot)
- *     → "EXIE chanvre" trouve maintenant les produits qui contiennent les 2 mots
- *   - NOUVEAU outil calculate_quantity → calcul métré juste (Fabien ne calcule plus)
- *   - NOUVEAU outil build_quote → devis JSON structuré, prix justes, total auto
+ * Changements V3.1 vs V3.0 (suite review technique) :
+ *   - FIX BUG SILENCIEUX : domaine Odoo multi-OR construit explicitement via
+ *     helper makeOrDomain (pile postfixée explicite) au lieu d'une suite de "|"
+ *     qui devenait instable avec plusieurs tokens AND.
+ *   - PERF : x_pdf_text retiré de search_products (PDFs OCR de 50k chars qui
+ *     plombaient le CPU PostgreSQL). x_pdf_text reste consultable dans
+ *     get_product_details à la demande.
+ *   - SÉCURITÉ COMMERCIALE : build_quote ajoute price_source + disclaimer
+ *     explicite (prix public HT, hors transport et remises chantier).
+ *   - PRÉCISION : calculate_quantity accepte waste_factor_pct + presets par
+ *     type d'application (ETICS, panneaux, vrac, enduit manuel).
+ *   - ARCHITECTURE FUTUR : ajout d'un v9_model vide dans build_quote pour
+ *     préparer la transition slots / function_options / materials / generates.
  *
  * Outils exposés
  * --------------
- *   1. search_products       — recherche dans le catalogue filtré IA (V3 multi-mots)
- *   2. get_product_details   — fiche technique complète d'un produit
+ *   1. search_products       — recherche dans le catalogue filtré IA (V3.1 OR explicite, sans x_pdf_text)
+ *   2. get_product_details   — fiche technique complète d'un produit (inclut x_pdf_text)
  *   3. list_categories       — les 21 catégories techniques FAIREKO
  *   4. search_doctrine       — recherche dans Knowledge Odoo (doctrine FAIRĒKO)
- *   5. calculate_quantity    — calcul de quantités métré (jamais d'erreur LLM)
- *   6. build_quote           — devis structuré multi-lignes avec totaux justes
+ *   5. calculate_quantity    — calcul de quantités métré + waste_factor_pct
+ *   6. build_quote           — devis structuré + price_source + v9_model
  *
  * Variables d'environnement Netlify requises
  * -------------------------------------------
@@ -128,6 +136,39 @@ const CATEGORIES_TECH = [
 ];
 
 // -----------------------------------------------------------------------------
+// Helper : makeOrDomainFlat (V3.1 — fix domaine Odoo multi-OR)
+// -----------------------------------------------------------------------------
+// Construit un domaine OR aplati pour Odoo : pour N champs il faut N-1 '|'.
+// Forme : ['|', '|', ..., [f1, op, val], [f2, op, val], ...]
+// IMPORTANT : Odoo n'accepte PAS les sous-listes nested (erreur "unhashable type: 'list'").
+// Il faut la forme postfixée aplatie standard.
+//
+// Usage : pousser le retour dans le tableau domaine plat à coups de spread.
+//   const orTerms = makeOrDomainFlat(["name", "default_code"], "tok");
+//   domaine.push(...orTerms);
+// → domaine devient : [..., '|', ['name','ilike','tok'], ['default_code','ilike','tok']]
+//
+// Pour 5 champs : 4 opérateurs '|' suivis des 5 conditions.
+// Plusieurs tokens AND : on push à la suite, Odoo fait AND implicite entre blocs.
+// -----------------------------------------------------------------------------
+function makeOrDomainFlat(fields, token) {
+  if (!fields || fields.length === 0) return [];
+  if (fields.length === 1) {
+    return [[fields[0], "ilike", token]];
+  }
+  const result = [];
+  // N-1 opérateurs '|' devant
+  for (let i = 0; i < fields.length - 1; i++) {
+    result.push("|");
+  }
+  // Puis les N conditions
+  for (const f of fields) {
+    result.push([f, "ilike", token]);
+  }
+  return result;
+}
+
+// -----------------------------------------------------------------------------
 // Helper CORS
 // -----------------------------------------------------------------------------
 function cors(response) {
@@ -203,46 +244,39 @@ async function toolSearchProducts(input) {
   if (input.query && typeof input.query === "string") {
     const q = input.query.trim();
     if (q.length > 0) {
-      // V3 — FIX recherche multi-mots
-      // Stratégie : tokeniser la query → chaque mot doit matcher au moins UN champ (OR par champ)
-      // Tous les mots doivent être présents (AND entre les mots) sur l'ensemble des champs
-      // Stop-words ignorés (mots vides qui pourrissent la recherche)
+      // V3.1 — Fix domaine Odoo multi-OR : on utilise makeOrDomain qui construit
+      // une pile postfixée explicite, robuste à plusieurs tokens AND.
+      // Stop-words ignorés. Max 5 tokens.
+      // x_pdf_text RETIRÉ ici (PDFs OCR de 50k chars trop coûteux en search global).
+      // x_pdf_text reste accessible dans get_product_details à la demande.
       const STOP_WORDS = new Set([
         "le", "la", "les", "un", "une", "des", "de", "du", "et", "ou", "à", "au", "aux",
         "en", "sur", "sous", "dans", "pour", "par", "avec", "sans", "vs", "que", "qui",
         "the", "a", "of", "for", "and", "or", "to", "in", "on"
       ]);
 
+      const CHAMPS_RECHERCHE = [
+        "name",
+        "default_code",
+        "description_sale",
+        "x_ia_tags",
+        "x_pdf_resume_pro"
+        // x_pdf_text RETIRÉ V3.1 — voir CHAMPS_DETAIL pour le récupérer à la demande
+      ];
+
       const tokens = q
         .toLowerCase()
         .split(/\s+/)
         .filter(t => t.length >= 2 && !STOP_WORDS.has(t))
-        .slice(0, 5); // max 5 mots-clés (sinon trop restrictif)
+        .slice(0, 5);
 
       if (tokens.length === 0) {
-        // Fallback : query brute (cas où tout est stop-words ou mots <2 chars)
-        domaine.push(
-          "|", "|", "|", "|", "|",
-          ["name", "ilike", q],
-          ["default_code", "ilike", q],
-          ["description_sale", "ilike", q],
-          ["x_ia_tags", "ilike", q],
-          ["x_pdf_resume_pro", "ilike", q],
-          ["x_pdf_text", "ilike", q]
-        );
+        // Fallback : query brute (cas où tout est stop-words)
+        domaine.push(...makeOrDomainFlat(CHAMPS_RECHERCHE, q));
       } else {
-        // V3 : pour CHAQUE token, on fait un OR sur les 6 champs
-        // Tous les tokens doivent matcher (AND implicite entre eux)
+        // Pour CHAQUE token : bloc OR aplati postfixé. Tous les tokens en AND implicite.
         for (const tok of tokens) {
-          domaine.push(
-            "|", "|", "|", "|", "|",
-            ["name", "ilike", tok],
-            ["default_code", "ilike", tok],
-            ["description_sale", "ilike", tok],
-            ["x_ia_tags", "ilike", tok],
-            ["x_pdf_resume_pro", "ilike", tok],
-            ["x_pdf_text", "ilike", tok]
-          );
+          domaine.push(...makeOrDomainFlat(CHAMPS_RECHERCHE, tok));
         }
       }
     }
@@ -275,32 +309,20 @@ async function toolSearchProducts(input) {
         "en", "sur", "sous", "dans", "pour", "par", "avec", "sans", "vs", "que", "qui",
         "the", "a", "of", "for", "and", "or", "to", "in", "on"
       ]);
+      const CHAMPS_RECHERCHE = [
+        "name", "default_code", "description_sale", "x_ia_tags", "x_pdf_resume_pro"
+        // x_pdf_text retiré V3.1 (perf)
+      ];
       const tokens = q.toLowerCase().split(/\s+/)
         .filter(t => t.length >= 2 && !STOP_WORDS.has(t))
         .slice(0, 5);
 
       const domaineHorsIA = [["active", "=", true]];
       if (tokens.length === 0) {
-        domaineHorsIA.push(
-          "|", "|", "|", "|", "|",
-          ["name", "ilike", q],
-          ["default_code", "ilike", q],
-          ["description_sale", "ilike", q],
-          ["x_ia_tags", "ilike", q],
-          ["x_pdf_resume_pro", "ilike", q],
-          ["x_pdf_text", "ilike", q]
-        );
+        domaineHorsIA.push(...makeOrDomainFlat(CHAMPS_RECHERCHE, q));
       } else {
         for (const tok of tokens) {
-          domaineHorsIA.push(
-            "|", "|", "|", "|", "|",
-            ["name", "ilike", tok],
-            ["default_code", "ilike", tok],
-            ["description_sale", "ilike", tok],
-            ["x_ia_tags", "ilike", tok],
-            ["x_pdf_resume_pro", "ilike", tok],
-            ["x_pdf_text", "ilike", tok]
-          );
+          domaineHorsIA.push(...makeOrDomainFlat(CHAMPS_RECHERCHE, tok));
         }
       }
 
@@ -453,24 +475,47 @@ async function toolSearchDoctrine(input) {
 }
 
 // -----------------------------------------------------------------------------
-// Tool 5 : calculate_quantity (V3 — Fabien ne calcule plus mentalement)
+// Tool 5 : calculate_quantity (V3.1 — Fabien ne calcule plus + waste_factor)
 // -----------------------------------------------------------------------------
-// Reçoit : dimensions chantier + produit(s) consommables
-// Renvoie : quantités exactes en unités, palettes, prix HT total
+// Reçoit : dimensions chantier + produit(s) consommables + (optionnel) waste
+// Renvoie : quantités exactes en unités, palettes, prix HT total, marge pertes
+//
+// Presets de waste (review technique) :
+//   - panneaux rigides (ETICS, sarking)  : 5%
+//   - ETICS (système complet)            : 8%
+//   - enduit manuel                      : 12% (truelle, taloche)
+//   - vrac insufflé / soufflé            : 12%
+//   - vrac coulé / banché (CaNaDry)      : 8%
+//   - rouleaux / membranes               : 5%
+//   - défaut                             : 5%
 //
 // Exemple input :
 //   {
 //     surface_m2: 100,
-//     epaisseur_cm: 5,           // optionnel pour produits volumiques
-//     couches: 1,                 // optionnel (défaut 1)
-//     coverage_per_unit: 0.055,   // m³/sac (CaNaDry sac 55L = 0.055 m³)
-//     coverage_unit: "m3",        // "m2" | "m3" | "kg"
-//     consommation_per_m2: null,  // ex 5 kg/m² (pour produit en kg)
-//     unit_price: 15.43,          // € HT par unité
-//     unit_label: "sac",          // pour affichage
-//     palette_qty: 40             // optionnel : nb d'unités par palette
+//     epaisseur_cm: 25,
+//     coverage_unit: "m3",
+//     coverage_per_unit: 0.055,
+//     unit_price: 15.43,
+//     unit_label: "sac",
+//     palette_qty: 40,
+//     waste_factor_pct: 8,           // OPTIONNEL : Fabien le passe selon contexte
+//     waste_preset: "vrac_banche"    // OPTIONNEL : alternative au pct direct
 //   }
 // -----------------------------------------------------------------------------
+const WASTE_PRESETS = {
+  "panneau_rigide": 5,
+  "etics": 8,
+  "enduit_manuel": 12,
+  "enduit_projection": 10,
+  "vrac_insuffle": 12,
+  "vrac_souffle": 12,
+  "vrac_banche": 8,
+  "vrac_coule": 8,
+  "rouleau": 5,
+  "membrane": 5,
+  "default": 5
+};
+
 async function toolCalculateQuantity(input) {
   const errs = [];
 
@@ -492,41 +537,50 @@ async function toolCalculateQuantity(input) {
   const palette_qty = Number(input.palette_qty) || 0;
   const unit_label = input.unit_label || "unité";
 
-  // Calcul du besoin total selon le mode
-  let besoin_total = 0;
+  // V3.1 : résolution waste_factor_pct
+  // Priorité : valeur explicite > preset > défaut 5%
+  let waste_factor_pct = Number(input.waste_factor_pct);
+  let waste_source = "explicite";
+  if (!isFinite(waste_factor_pct) || waste_factor_pct < 0 || waste_factor_pct > 50) {
+    const preset = (input.waste_preset || "default").toLowerCase();
+    waste_factor_pct = WASTE_PRESETS[preset] !== undefined ? WASTE_PRESETS[preset] : WASTE_PRESETS.default;
+    waste_source = `preset:${preset}`;
+  }
+
+  // Calcul du besoin théorique (sans pertes)
+  let besoin_theorique = 0;
   let besoin_unit = "";
   let formule = "";
 
   if (coverage_unit === "m3" && epaisseur_cm > 0 && coverage_per_unit > 0) {
-    // Mode volumique : surface × épaisseur = volume → divisé par couverture/unité
-    const volume_m3 = (surface_m2 * epaisseur_cm) / 100; // cm → m
-    besoin_total = volume_m3 * couches;
+    const volume_m3 = (surface_m2 * epaisseur_cm) / 100;
+    besoin_theorique = volume_m3 * couches;
     besoin_unit = "m³";
     formule = `${surface_m2} m² × ${epaisseur_cm} cm × ${couches} couche(s) = ${volume_m3.toFixed(2)} m³`;
   } else if (coverage_unit === "kg" && consommation_per_m2 > 0) {
-    // Mode pondéral : surface × consommation × couches
-    besoin_total = surface_m2 * consommation_per_m2 * couches;
+    besoin_theorique = surface_m2 * consommation_per_m2 * couches;
     besoin_unit = "kg";
-    formule = `${surface_m2} m² × ${consommation_per_m2} kg/m² × ${couches} couche(s) = ${besoin_total.toFixed(1)} kg`;
+    formule = `${surface_m2} m² × ${consommation_per_m2} kg/m² × ${couches} couche(s) = ${besoin_theorique.toFixed(1)} kg`;
   } else if (coverage_unit === "m2") {
-    // Mode surfacique simple (couvrance par unité = m²/unité)
-    besoin_total = surface_m2 * couches;
+    besoin_theorique = surface_m2 * couches;
     besoin_unit = "m²";
-    formule = `${surface_m2} m² × ${couches} couche(s) = ${besoin_total.toFixed(1)} m²`;
+    formule = `${surface_m2} m² × ${couches} couche(s) = ${besoin_theorique.toFixed(1)} m²`;
   } else {
     return { error: "Configuration insuffisante : besoin de coverage_unit + (epaisseur_cm OR consommation_per_m2)" };
   }
+
+  // V3.1 : application du waste_factor
+  const besoin_total = +(besoin_theorique * (1 + waste_factor_pct / 100)).toFixed(2);
 
   // Conversion besoin → nombre d'unités
   let unites_brutes = 0;
   if (coverage_per_unit > 0) {
     unites_brutes = besoin_total / coverage_per_unit;
   } else if (coverage_unit === "kg") {
-    // Si pas de coverage_per_unit en kg, on assume 1 unité = 1 kg (rare)
     unites_brutes = besoin_total;
   }
 
-  const unites_arrondi = Math.ceil(unites_brutes); // toujours arrondir au-dessus
+  const unites_arrondi = Math.ceil(unites_brutes);
   const sous_total_ht = +(unites_arrondi * unit_price).toFixed(2);
 
   // Conversion en palettes si applicable
@@ -541,8 +595,11 @@ async function toolCalculateQuantity(input) {
 
   return {
     formule_calcul: formule,
-    besoin_total: +besoin_total.toFixed(2),
+    besoin_theorique: +besoin_theorique.toFixed(2),
+    besoin_avec_pertes: besoin_total,
     besoin_unit,
+    waste_factor_pct,
+    waste_source,
     unites_brutes: +unites_brutes.toFixed(2),
     unites_arrondi,
     unit_label,
@@ -560,7 +617,8 @@ async function toolCalculateQuantity(input) {
           ? `${palettes} palette(s) de ${palette_qty} ${unit_label}(s) = ${unites_palette_complete} ${unit_label}(s)`
           : `${palettes} palette(s) + ${unites_appoint} ${unit_label}(s) à l'unité`
     }),
-    note_chantier: "Quantités calculées sans pertes. Prévoir +5 à +10% de marge selon complexité du chantier."
+    note_chantier: `Quantités calculées avec marge pertes ${waste_factor_pct}% (source : ${waste_source}). Ajuster selon complexité chantier réelle.`,
+    presets_disponibles: Object.keys(WASTE_PRESETS)
   };
 }
 
@@ -667,12 +725,26 @@ async function toolBuildQuote(input) {
       total_ttc,
       devise: "EUR"
     },
+    // V3.1 — Sécurité commerciale (review technique)
+    price_source: "public_list_price",
+    price_disclaimer: "Prix publics HT issus du catalogue Odoo FAIRĒKO. NON contractuel. Hors transport, hors remises chantier, hors pricelists B2B (Prix Négoces, Prix Entrepreneur). Stock non vérifié. Pour devis officiel : contacter hello@nbsdistribution.eu",
     cta: {
       panier: "Ajouter au panier sur faireko.be",
       devis_pdf: "Demander un devis PDF officiel à hello@nbsdistribution.eu",
       expert: "Appeler un conseiller FAIRĒKO pour validation chantier"
     },
-    note: "Prix HT indicatifs depuis Odoo. Devis officiel sur demande. TVA 21% (Belgique)."
+    // V3.1 — Préparation modèle FAIRĒKO v9 (review technique)
+    // Pour l'instant vide. Sera rempli par un futur system_builder en amont
+    // (slots → function_options → materials → generates).
+    // Présent dès maintenant pour que le front puisse l'ignorer ou commencer
+    // à le consommer sans casser la compatibilité.
+    v9_model: {
+      slots: [],
+      function_options: [],
+      materials: [],
+      generates: []
+    },
+    note: "Devis indicatif basé sur le catalogue public. Prix réels via pricelist FAIRĒKO sur demande."
   };
 }
 
