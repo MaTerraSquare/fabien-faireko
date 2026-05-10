@@ -1,0 +1,61 @@
+[
+  {
+    "id": "restaura_iti_fibres_bois",
+    "name": "RESTAURA NHL3,5 sur fibres-bois ITI nécessite primer",
+    "rule_set": "enduits_chaux",
+    "when": {
+      "couche_suivante": ["RESTAURA_NHL35"],
+      "support": ["fibres_bois", "PIHEMP_matelas"],
+      "interieur_exterieur": ["interieur"]
+    },
+    "require": {},
+    "verdict": "compatible",
+    "evidence": "DOCUMENT_OFFICIEL",
+    "source": "Doctrine FAIREKO 06/05/2026 — correction Denis",
+    "vigilance": "Primer Gordillo's Pegamento Bio obligatoire avant application."
+  },
+  {
+    "id": "gobetis_durete",
+    "name": "Gobetis toujours plus dur que la couche suivante",
+    "rule_set": "enduits_chaux",
+    "when": {
+      "etape": ["gobetis"]
+    },
+    "require": {
+      "ratio_liant_sable": ["1_1"]
+    },
+    "verdict": "compatible",
+    "evidence": "DOCUMENT_OFFICIEL",
+    "source": "Doctrine FAIREKO — règle d'or chaux",
+    "vigilance": "Ne jamais inverser support → gobetis (le plus dur) → corps → finition (la plus tendre)."
+  },
+  {
+    "id": "canadry_jamais_machine",
+    "name": "CaNaDry® uniquement à la main",
+    "rule_set": "isolants_vrac",
+    "when": {
+      "produit": ["CANADRY"]
+    },
+    "require": {
+      "mode_pose": ["main"]
+    },
+    "verdict": "compatible",
+    "evidence": "DOCUMENT_OFFICIEL",
+    "source": "Doctrine FAIREKO — distinction produits",
+    "vigilance": "AUCUNE machine. Ne pas confondre avec EXIE Fibres (paille soufflée, retiré gamme) ni SORIWA (profil structurel)."
+  },
+  {
+    "id": "pihemp_systeme_nbs",
+    "name": "Système validé NBS PI-HEMP + SORIWA + SCHLEUSNER",
+    "rule_set": "systemes_isolation",
+    "when": {
+      "isolant": ["PIHEMP"],
+      "structure": ["SORIWA"]
+    },
+    "require": {},
+    "verdict": "compatible",
+    "evidence": "DOCUMENT_OFFICIEL",
+    "source": "ETA-24/0170 + rapports Roxeler 040038-23 TA01-TA05",
+    "vigilance": "Finition recommandée : SCHLEUSNER HEMPLEEM. U=0,21 W/m²K validé."
+  }
+]
