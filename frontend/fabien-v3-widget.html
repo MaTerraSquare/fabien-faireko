@@ -229,8 +229,15 @@
       });
       const data = await r.json();
       if (!data.ok) {
+        // CRITIQUE : retirer le user message du history pour ne pas corrompre la conv
+        history.pop();
         setPose("idle");
-        addBotText("⚠️ Une erreur est survenue. Réessayez ou contactez hello@nbsdistribution.eu.");
+        const is429 = data.error?.status === 429 || /rate.?limit|429/i.test(data.error?.message || "");
+        if (is429) {
+          addBotText("⏳ Trop de questions à la suite — patientez 30 secondes et réessayez. (Limite Anthropic temporaire)");
+        } else {
+          addBotText("⚠️ Une erreur est survenue. Réessayez ou contactez hello@nbsdistribution.eu.");
+        }
         console.error("[fabien-v3]", data);
         return;
       }
@@ -256,6 +263,7 @@
         setPose("idle");
       }
     } catch (e) {
+      history.pop(); // Retirer le user msg en cas d'erreur réseau
       setPose("idle");
       addBotText("⚠️ Erreur réseau. Réessayez.");
       console.error(e);
