@@ -405,8 +405,8 @@ async function toolSearchDoctrine(input) {
   }
 
   let limit = parseInt(input.limit, 10);
-  if (isNaN(limit) || limit < 1) limit = 3;
-  if (limit > 5) limit = 5;
+  if (isNaN(limit) || limit < 1) limit = 2;
+  if (limit > 3) limit = 3;
 
   const domaine = [
     ["is_article_item", "=", false],
@@ -437,7 +437,10 @@ async function toolSearchDoctrine(input) {
     };
   }
 
-  // Nettoyage HTML → texte brut, troncature à 1500 chars
+  // V3.2 — Nettoyage HTML → texte brut, troncature DURE à 600 chars
+  // (avant 1500 chars × 3 articles = 4500 chars = ~1100 tokens à chaque tool call,
+  // accumulés en context window qui faisait exploser le rate limit Anthropic).
+  // Maintenant 600 × 2 = 1200 chars = ~300 tokens max par appel.
   const articlesNettoyes = articles.map(a => {
     let texte = (a.body || "")
       .replace(/<br\s*\/?>/gi, "\n")
@@ -454,8 +457,8 @@ async function toolSearchDoctrine(input) {
       .replace(/\n{3,}/g, "\n\n")
       .trim();
 
-    if (texte.length > 1500) {
-      texte = texte.substring(0, 1500) + "…";
+    if (texte.length > 600) {
+      texte = texte.substring(0, 600) + "…";
     }
 
     return {
